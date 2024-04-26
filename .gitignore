@@ -30,3 +30,16 @@
 *.exe
 *.out
 *.app
+
+# Text files
+*.txt
+Energies.dat
+
+# Ignore directories
+.vscode/
+build/
+
+# ignore default executable
+vmc
+
+ProfileOutput
