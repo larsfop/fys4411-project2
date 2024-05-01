@@ -38,31 +38,33 @@ double SimpleGaussian::DoubleDerivative(
 {
     int numberofdimensions = particles[0]->getNumberofDimensions();
     int numberofparticles = particles.size();
-    arma::vec beta_z2 = arma::square(m_beta_z);
-    double d2psi = 0;
 
-    // Calculate the constant term, where the z dimension is multiplied by 
-    // an additional beta   
-    double constant = 0;
+    // constant term
+    double constant = numberofdimensions*numberofparticles*m_alpha; //*omega
+
+    // for two fermions
+    arma::vec pos1 = particles[0]->getPosition();
+    arma::vec pos2 = particles[1]->getPosition();
+
+    // double r1_2 = arma::norm(pos1);
+    // double r2_2 = arma::norm(pos2);
+    double r1_2 = 0;
+    double r2_2 = 0;
     for (int i = 0; i < numberofdimensions; i++)
     {
-        constant += m_beta_z(i);
+        r1_2 += pos1(i)*pos1(i);
+        r2_2 += pos2(i)*pos2(i);
     }
-    constant *= 2*m_alpha*numberofparticles;
 
-    for (int i = 0; i < numberofparticles; i++)
+    double tmp = 0;
+    for (int i = 0; i < numberofdimensions; i++)
     {
-        arma::vec pos = particles[i]->getPosition();
-
-        // sum and square the position term i.e. (x^2 + y^2 + beta*z^2)
-        double r2 = 0;
-        for (int j = 0; j < numberofdimensions; j++)
-        {
-            r2 += pos(j)*pos(j)*beta_z2(j);
-        }
-        d2psi += 4*m_alpha*m_alpha*r2;
+        tmp += pos1(i)*pos2(i);
     }
-    return d2psi - constant;
+
+    double d2psi = m_alpha*m_alpha*(r1_2 + r2_2); //*omega*omega
+
+    return d2psi - constant; // return d2psi/psi
 }
 
 double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> &particles)
@@ -81,8 +83,11 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
         }
     }
 
-    // E_L = alpha(2 + beta) + (x^2 + y^2 + beta^2*z^2)(1 - 4alpha)
-    return 0.5*(-kinetic + potential);
+    // E_L for two fermions
+    // potential: = 0.5*omega^2*r^2
+    // kinetic: 2D: -4*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2)
+    //          3D: -6*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2 + 2*z1*z2)
+    return 0.5*(-kinetic + potential); // omega = 1
 }
 
 arma::vec SimpleGaussian::QuantumForce(
@@ -95,7 +100,7 @@ arma::vec SimpleGaussian::QuantumForce(
     arma::vec qforce(numberofdimensions);
     for (int i = 0; i < numberofdimensions; i++)
     {
-        qforce(i) = pos(i)*m_beta_z(i);
+        qforce(i) = pos(i);
     }
     return -4*m_alpha*qforce;
 }
@@ -111,7 +116,7 @@ arma::vec SimpleGaussian::QuantumForce(
     arma::vec qforce(numberofdimensions);
     for (int i = 0; i < numberofdimensions; i++)
     {
-        qforce(i) = pos(i)*m_beta_z(i) + Step(i);
+        qforce(i) = pos(i) + Step(i);
     }
     return -4*m_alpha*qforce; 
 }
@@ -126,9 +131,16 @@ double SimpleGaussian::w(std::vector<std::unique_ptr<class Particle>> &particles
     double dr2 = 0;
     for (int i = 0; i < numberofdimensions; i++)
     {
-        dr2 += (2*pos(i) + step(i))*step(i)*m_beta_z(i);
+        dr2 += (2*pos(i) + step(i))*step(i);
     }
-    return std::exp(-2*m_alpha*dr2);
+
+    arma::vec pos1 = particles[0]->getPosition();
+    arma::vec pos2 = particles[1]->getPosition();
+
+    double r12_old = arma::norm(pos1 - pos2);
+    double r12_new = arma::norm(pos + step - particles[(index+1)%2]->getPosition());
+
+    return std::exp(-2*m_alpha*dr2)*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
 }
 
 // Take the derivative of the the wavefunction as a function of the parameters alpha, beta

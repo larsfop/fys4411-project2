@@ -44,11 +44,7 @@ std::unique_ptr<class Sampler> System::RunMetropolisSteps(
     auto t1 = std::chrono::system_clock::now();
     for (int i = 0; i < numberofMetropolisSteps; i++)
     {
-        bool acceptedStep;
-        for (int j = 0; j < m_numberofparticles; j++)
-        {
-            acceptedStep = m_solver->Step(steplength, *m_wavefunction, m_particles, j);
-        }
+        bool acceptedStep = m_solver->Step(steplength, *m_wavefunction, m_particles);
 
         sampler->Sample(acceptedStep, this);
         if (m_Printout)
@@ -75,10 +71,7 @@ int System::RunEquilibrationSteps(
     int acceptedSteps = 0;
 
     for (int i = 0; i < numberOfEquilibrationSteps; i++) {
-        for (int j = 0; j < m_numberofparticles; j++)
-        {
-            acceptedSteps += m_solver->Step(stepLength, *m_wavefunction, m_particles, j);
-        }
+        acceptedSteps += m_solver->Step(stepLength, *m_wavefunction, m_particles);
     }
 
     for (int i = 0; i < m_numberofparticles; i++)

@@ -26,7 +26,7 @@ int main(int argc, const char *argv[])
     double alpha, beta, steplength;
     double dx = 1e-1;
     string Filename;
-    bool OptimizeForParameters, Interacting, Hastings, NumericalDer, Printout;
+    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout;
 
     string input;
     ifstream ifile("config");
@@ -56,6 +56,8 @@ int main(int argc, const char *argv[])
         {Filename = value; }
         else if (name == "OptimizeForParameters")
         {OptimizeForParameters = (bool) stoi(value); }
+        else if (name == "VaryParameters")
+        {VaryParameters == (bool) stoi(value); }
         else if (name == "Interacting")
         {Interacting = (bool) stoi(value); }
         else if (name == "Hastings")
@@ -95,6 +97,8 @@ int main(int argc, const char *argv[])
             {Filename = value; }
             else if (name == "OptimizeForParameters")
             {OptimizeForParameters = (bool) stoi(value); }   
+            else if (name  == "VaryParameters")
+            {VaryParameters == (bool) stoi(value); }
             else if (name == "Interacting")
             {Interacting = (bool) stoi(value); }
             else if (name == "Hastings")
@@ -208,13 +212,20 @@ int main(int argc, const char *argv[])
                 maxiter
             );
         }
-        else
+        else if (VaryParameters)
         {
             sampler = system->VaryParameters(
                 steplength,
                 numberofMetropolisSteps,
                 maxvariations
             ); 
+        }
+        else
+        {
+            sampler = system->RunMetropolisSteps(
+                steplength,
+                numberofMetropolisSteps
+            );
         }
 
         samplers.push_back(std::move(sampler));

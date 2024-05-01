@@ -34,6 +34,7 @@
 # Text files
 *.txt
 Energies.dat
+Outputs/
 
 # Ignore directories
 .vscode/

@@ -11,13 +11,13 @@ MetropolisHastings::MetropolisHastings(std::unique_ptr<class Random> rng) : Mont
 bool MetropolisHastings::Step(
     double stepsize,
     class WaveFunction &wavefunction,
-    std::vector<std::unique_ptr<class Particle>> &particles,
-    int index
+    std::vector<std::unique_ptr<class Particle>> &particles
 )
 {
     double sqrt_dt = sqrt(stepsize);
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    //index = m_rng->NextInt(numberofparticles-1);
+    int numberofparticles = particles.size();
+    int index = m_rng->NextInt(numberofparticles-1);
     double D = 0.5;
 
     arma::vec qforce = wavefunction.QuantumForce(particles, index);

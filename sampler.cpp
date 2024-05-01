@@ -73,8 +73,8 @@ Sampler::Sampler(std::vector<std::unique_ptr<class Sampler>> &samplers, std::str
         }
     }
 
-    m_Energy /= m_numberofthreads*m_numberofparticles;
-    m_Energy2 /= m_numberofthreads*m_numberofparticles*m_numberofparticles;
+    m_Energy /= m_numberofthreads;
+    m_Energy2 /= m_numberofthreads;
     m_DeltaPsi /= m_numberofthreads;
     m_PsiEnergyDerivative /= m_numberofthreads;
 
