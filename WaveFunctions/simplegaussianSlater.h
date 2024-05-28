@@ -4,12 +4,15 @@
 #include "WaveFunctions.h"
 #include "../Particle.h"
 
-class SimpleGaussian : public WaveFunction
+class SimpleGaussianSlater : public WaveFunction
 {
 public:
-    SimpleGaussian(const double alpha, double beta);
+    SimpleGaussianSlater(const double alpha, double beta, int N);
     double Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles);
-    double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
+    double EvalWavefunction(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j);
+    void FillSlaterDeterminants(std::vector<std::unique_ptr<class Particle>> &particles);
+    arma::vec SingleDerivative(std::vector<std::unique_ptr<class Particle>> &particles, int index, int n);
+    double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles, int index, int n);
     double LocalEnergy(std::vector<std::unique_ptr<class Particle>> &particles);
     arma::vec QuantumForce(std::vector<std::unique_ptr<class Particle>> &particles, const int index);
     double w(std::vector<std::unique_ptr<class Particle>> &particles, const int index, const arma::vec step);
@@ -22,7 +25,7 @@ public:
         const arma::vec Step
     );
     double geta() {return 0; };
-    double Hermite_poly(int n, double x);
+    double Hermite_poly(int n, arma::vec pos);
 
 private:
     double m_alpha;
@@ -30,13 +33,16 @@ private:
     double m_omega;
     arma::vec m_beta_z;
     arma::vec m_parameters;
+
+    arma::mat m_D_up;
+    arma::mat m_D_down;
 };
 
 
-class SimpleGaussianNumerical : public SimpleGaussian
+class SimpleGaussianNumerical : public SimpleGaussianSlater
 {
 public:
-    SimpleGaussianNumerical(double alpha, double beta, double dx);
+    SimpleGaussianNumerical(double alpha, double beta, double dx, int N);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double EvaluateSingleParticle(class Particle particle);
     double EvaluateSingleParticle(class Particle particle, double step, double step_index);

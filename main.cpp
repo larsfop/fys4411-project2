@@ -57,7 +57,7 @@ int main(int argc, const char *argv[])
         else if (name == "OptimizeForParameters")
         {OptimizeForParameters = (bool) stoi(value); }
         else if (name == "VaryParameters")
-        {VaryParameters == (bool) stoi(value); }
+        {VaryParameters = (bool) stoi(value); }
         else if (name == "Interacting")
         {Interacting = (bool) stoi(value); }
         else if (name == "Hastings")
@@ -98,7 +98,7 @@ int main(int argc, const char *argv[])
             else if (name == "OptimizeForParameters")
             {OptimizeForParameters = (bool) stoi(value); }   
             else if (name  == "VaryParameters")
-            {VaryParameters == (bool) stoi(value); }
+            {VaryParameters = (bool) stoi(value); }
             else if (name == "Interacting")
             {Interacting = (bool) stoi(value); }
             else if (name == "Hastings")

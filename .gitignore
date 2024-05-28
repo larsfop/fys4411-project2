@@ -42,5 +42,7 @@ build/
 
 # ignore default executable
 vmc
+test
 
 ProfileOutput
+test.cpp
