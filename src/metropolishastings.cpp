@@ -1,7 +1,8 @@
 
 #include "metropolishastings.h"
-#include "../Particle.h"
+#include "Particle.h"
 
+#include <memory>
 #include <iostream>
 #include <iomanip>
 using namespace std;

@@ -1,6 +1,6 @@
 #include <memory>
 #include "metropolis.h"
-#include "../Particle.h"
+#include "Particle.h"
 
 #include <iostream>
 using namespace std;
@@ -22,10 +22,12 @@ bool Metropolis::Step(
     {
         step(i) = stepsize * (m_rng->NextDouble() - 0.5);
     }
-    double w = wavefunction.w(particles, index, step);
+    double R = wavefunction.w(particles, index, step);
 
-    if(m_rng->NextDouble() <= w)
+    if(m_rng->NextDouble() <= R)
     {
+        wavefunction.UpdateInverseSlater(particles, index, R, step);
+
         particles.at(index)->ChangePosition(step);
 
         return true;

@@ -11,12 +11,7 @@ public:
     virtual ~WaveFunction() = default;
 
     virtual double Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles) = 0;
-    virtual double EvalWavefunction(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j) = 0;
-    virtual double EvalWavefunction(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j, arma::vec step) = 0;
     virtual void FillSlaterDeterminants(std::vector<std::unique_ptr<class Particle>> &particles) = 0;
-    virtual arma::vec SingleDerivative(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j) = 0;
-    virtual arma::vec SingleDerivative(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j, arma::vec step) = 0;
-    virtual double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j) = 0;
     virtual double LocalEnergy(std::vector<std::unique_ptr<class Particle>> &particles) = 0;
     virtual arma::vec QuantumForce(std::vector<std::unique_ptr<class Particle>> &particles, const int index) = 0;
     virtual double w(std::vector<std::unique_ptr<class Particle>> &particles, const int index, const arma::vec step) = 0;

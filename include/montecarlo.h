@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <vector>
-#include "Math/random.h"
+#include "random.h"
 
 class MonteCarlo
 {

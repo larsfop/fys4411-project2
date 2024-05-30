@@ -2,9 +2,9 @@
 #include "system.h"
 #include "sampler.h"
 #include "Particle.h"
-#include "WaveFunctions/WaveFunctions.h"
-#include "InitialState/initialstate.h"
-#include "Solvers/montecarlo.h"
+#include "WaveFunctions.h"
+#include "initialstate.h"
+#include "montecarlo.h"
 
 #include <iostream>
 #include <stdio.h>

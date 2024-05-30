@@ -8,16 +8,20 @@ using namespace std;
 SimpleGaussianSlater::SimpleGaussianSlater(
     const double alpha,
     double beta,
+    double omega,
     int N
 )
 {
     m_alpha = alpha;
     m_beta = beta;
+    m_omega = omega;
     m_beta_z = {1.0, 1.0, beta};
     m_parameters = {alpha, beta};
 
     m_D_up.zeros(N/2, N/2);
     m_D_down.zeros(N/2, N/2);
+    m_DI_up.zeros(N/2, N/2);
+    m_DI_down.zeros(N/2, N/2);
 }
 
 double SimpleGaussianSlater::Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles)
@@ -44,7 +48,7 @@ double SimpleGaussianSlater::EvalWavefunction(
     arma::vec pos = particles[i]->getPosition();
     double r2 = arma::sum(arma::square(pos));
 
-    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
+    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2.);
 }
 
 double SimpleGaussianSlater::EvalWavefunction(
@@ -56,7 +60,7 @@ double SimpleGaussianSlater::EvalWavefunction(
     arma::vec pos = particles[i]->getPosition() + step;
     double r2 = arma::sum(arma::square(pos));
 
-    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
+    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2.);
 }
 
 void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<class Particle>> &particles)
@@ -71,8 +75,10 @@ void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<cl
             m_D_down(i,j) = EvalWavefunction(particles, i+N/2, j);
         }
     }
+    m_D_sum = arma::det(m_D_up)*arma::det(m_D_down);
 
-    //m_DI_up = m_D_up.i();
+    m_DI_up = arma::inv(m_D_down);
+    m_DI_down = arma::inv(m_D_down);
 }
 
 arma::vec SimpleGaussianSlater::SingleDerivative(
@@ -183,7 +189,7 @@ double SimpleGaussianSlater::LocalEnergy(std::vector<std::unique_ptr<class Parti
         {
             for (int j = 0; j < N2; j++)
             {
-                kinetic += DoubleDerivative(particles, i, j)*m_DI_down(j, i);
+                kinetic += DoubleDerivative(particles, i, j)*m_DI_down(j, i-N2);
             }
         }
 
@@ -219,7 +225,7 @@ arma::vec SimpleGaussianSlater::QuantumForce(
     {
         for (int j = 0; j < N2; j++)
         {
-            qforce = SingleDerivative(particles, index, j)*m_DI_down(j, index);
+            qforce = SingleDerivative(particles, index, j)*m_DI_down(j, index - N2);
         }
     }
     return 2*qforce;
@@ -246,7 +252,7 @@ arma::vec SimpleGaussianSlater::QuantumForce(
     {
         for (int j = 0; j < N2; j++)
         {
-            qforce = SingleDerivative(particles, index, j, Step)*m_DI_down(j, index);
+            qforce = SingleDerivative(particles, index, j, Step)*m_DI_down(j, index - N2);
         }
     }
     return 2*qforce;
@@ -262,20 +268,23 @@ double SimpleGaussianSlater::w(std::vector<std::unique_ptr<class Particle>> &par
     int N2 = numberofparticles/2;
 
     double R = 0;
-    if (index < N2)
-    {
-        for (int j = 0; j < N2; j++)
+    //for (int i = 0; i < numberofparticles; i++)
+    //{
+        if (index < N2)
         {
-            R += EvalWavefunction(particles, index, j, step)*m_DI_up(j, index);
+            for (int j = 0; j < N2; j++)
+            {
+                R += EvalWavefunction(particles, index, j, step)*m_DI_up(j, index);
+            }
         }
-    }
-    else
-    {
-        for (int j = 0; j < N2; j++)
+        else
         {
-            R += EvalWavefunction(particles, index, j, step)*m_DI_down(j, index);
+            for (int j = 0; j < N2; j++)
+            {
+                R += EvalWavefunction(particles, index, j, step)*m_DI_down(j, index - N2);
+            }
         }
-    }
+    //}
     
     return R;
 }
@@ -375,7 +384,7 @@ void SimpleGaussianSlater::UpdateInverseSlater(
                     m_DI_down(k-N2,j) = m_DI_down(k-N2,i)/R;
                     for (int l = 0; l < N2; l++)
                     {
-                        m_DI_down(k-N2,j) *= m_D_down(i-N2,l)*m_DI_down(l,j);
+                        m_DI_down(k-N2,j) *= m_D_down(i,l)*m_DI_down(l,j);
                     }
                 }
                 else
@@ -395,7 +404,7 @@ void SimpleGaussianSlater::UpdateInverseSlater(
 
 
 
-SimpleGaussianSlaterNumerical::SimpleGaussianSlaterNumerical(double alpha, double beta, double dx, int N) : SimpleGaussianSlater(alpha, beta, N)
+SimpleGaussianSlaterNumerical::SimpleGaussianSlaterNumerical(double alpha, double beta, double omega, double dx, int N) : SimpleGaussianSlater(alpha, beta, omega, N)
 {
     m_alpha = alpha;
     m_dx = dx;

@@ -2,12 +2,12 @@
 
 #include <memory>
 #include "montecarlo.h"
-#include "../WaveFunctions/WaveFunctions.h"
+#include "WaveFunctions.h"
 
-class Metropolis : public MonteCarlo
+class MetropolisHastings : public MonteCarlo
 {
 public:
-    Metropolis(std::unique_ptr<class Random> rng);
+    MetropolisHastings(std::unique_ptr<class Random> rng);
     bool Step(
         double stepsize,
         class WaveFunction &wavefunction,

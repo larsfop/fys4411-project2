@@ -10,13 +10,13 @@
 #include <armadillo>
 
 #include "Particle.h"
-#include "Math/random.h"
-//#include "WaveFunctions/simplegaussian.h"
+#include "random.h"
+#include "simplegaussian.h"
 //#include "WaveFunctions/interactinggaussian.h"
-#include "WaveFunctions/simplegaussianSlater.h"
-#include "InitialState/initialstate.h"
-#include "Solvers/metropolis.h"
-#include "Solvers/metropolishastings.h"
+#include "simplegaussianSlater.h"
+#include "initialstate.h"
+#include "metropolis.h"
+#include "metropolishastings.h"
 #include "sampler.h"
 #include "system.h"
 
@@ -24,14 +24,8 @@ using namespace std;
 
 int main(int argc, const char *argv[])
 {
-    arma::mat A;
-    A.ones(4,4);
-    arma::mat B;
-    arma::inv(B,A);
-
-
     int seed, numberofMetropolisSteps, numberofparticles, numberofdimensions, maxvariations;
-    double alpha, beta, steplength;
+    double alpha, beta, omega, steplength;
     double dx = 1e-1;
     string Filename;
     bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout;
@@ -56,6 +50,8 @@ int main(int argc, const char *argv[])
         {alpha = stod(value); }
         else if (name == "beta")
         {beta = stod(value); }
+        else if (name == "omega")
+        {omega = stod(value); }
         else if (name == "Steplength")
         {steplength = stod(value); }
         else if (name == "threadsused")
@@ -97,6 +93,8 @@ int main(int argc, const char *argv[])
             {alpha = stod(value); }
             else if (name == "beta")
             {beta = stod(value); }
+            else if (name == "omega")
+            {omega = stod(value); }
             else if (name == "Steplength")
             {steplength = stod(value); }
             else if (name == "threadsused")
@@ -185,7 +183,7 @@ int main(int argc, const char *argv[])
         }
         else
         {
-            wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, numberofparticles);
+            wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, omega, numberofparticles);
         }
         wavefunction->FillSlaterDeterminants(particles);
 
@@ -266,7 +264,7 @@ int main(int argc, const char *argv[])
         );
 
         auto system = std::make_unique<System>(
-            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, dx, numberofparticles),
+            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, omega, dx, numberofparticles),
             std::make_unique<class Metropolis>(std::move(rng)),
             std::move(particles),
             Filename,
