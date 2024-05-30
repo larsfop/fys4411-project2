@@ -7,11 +7,13 @@
 #include <stdio.h>
 #include <chrono>
 #include <map>
+#include <armadillo>
 
 #include "Particle.h"
 #include "Math/random.h"
-#include "WaveFunctions/simplegaussian.h"
-#include "WaveFunctions/interactinggaussian.h"
+//#include "WaveFunctions/simplegaussian.h"
+//#include "WaveFunctions/interactinggaussian.h"
+#include "WaveFunctions/simplegaussianSlater.h"
 #include "InitialState/initialstate.h"
 #include "Solvers/metropolis.h"
 #include "Solvers/metropolishastings.h"
@@ -22,6 +24,12 @@ using namespace std;
 
 int main(int argc, const char *argv[])
 {
+    arma::mat A;
+    A.ones(4,4);
+    arma::mat B;
+    arma::inv(B,A);
+
+
     int seed, numberofMetropolisSteps, numberofparticles, numberofdimensions, maxvariations;
     double alpha, beta, steplength;
     double dx = 1e-1;
@@ -172,12 +180,14 @@ int main(int argc, const char *argv[])
 
         if (Interacting)
         {
-            wavefunction = std::make_unique<class InteractingGaussian>(alpha, beta);
+            //wavefunction = std::make_unique<class InteractingGaussian>(alpha, beta);
+            
         }
         else
         {
-            wavefunction = std::make_unique<class SimpleGaussian>(alpha, beta);
+            wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, numberofparticles);
         }
+        wavefunction->FillSlaterDeterminants(particles);
 
         if (Hastings)
         {
@@ -256,7 +266,7 @@ int main(int argc, const char *argv[])
         );
 
         auto system = std::make_unique<System>(
-            std::make_unique<class SimpleGaussianNumerical>(alpha, beta, dx),
+            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, dx, numberofparticles),
             std::make_unique<class Metropolis>(std::move(rng)),
             std::move(particles),
             Filename,

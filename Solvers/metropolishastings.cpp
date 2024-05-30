@@ -39,12 +39,14 @@ bool MetropolisHastings::Step(
         (qforce(i) - qforcenew(i)) - (pos(i) + step(i)) + pos(i));
     }
 
-    double w = wavefunction.w(particles, index, step) * exp(greens);
-    double random = m_rng->NextDouble();
-    if(random <= w)
-    {
-        particles.at(index)->ChangePosition(step);
+    double R = wavefunction.w(particles, index, step);
 
+    double random = m_rng->NextDouble();
+    if(random <= R*exp(greens))
+    {
+        wavefunction.UpdateInverseSlater(particles, index, R, step);
+
+        particles.at(index)->ChangePosition(step);
         return true;
     }
 

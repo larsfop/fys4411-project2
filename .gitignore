@@ -39,6 +39,7 @@ Outputs/
 # Ignore directories
 .vscode/
 build/
+old wf/
 
 # ignore default executable
 vmc
@@ -46,3 +47,4 @@ test
 
 ProfileOutput
 test.cpp
+penMP

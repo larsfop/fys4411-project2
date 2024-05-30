@@ -36,9 +36,24 @@ double SimpleGaussianSlater::Wavefunction(std::vector<std::unique_ptr<class Part
     return std::exp(-m_alpha*r2);
 }
 
-double SimpleGaussianSlater::EvalWavefunction(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j)
+double SimpleGaussianSlater::EvalWavefunction(
+    std::vector<std::unique_ptr<class Particle>> &particles, 
+    int i, 
+    int j)
 {
     arma::vec pos = particles[i]->getPosition();
+    double r2 = arma::sum(arma::square(pos));
+
+    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
+}
+
+double SimpleGaussianSlater::EvalWavefunction(
+    std::vector<std::unique_ptr<class Particle>> &particles,
+    int i, 
+    int j,
+    arma::vec step)
+{
+    arma::vec pos = particles[i]->getPosition() + step;
     double r2 = arma::sum(arma::square(pos));
 
     return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
@@ -56,65 +71,94 @@ void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<cl
             m_D_down(i,j) = EvalWavefunction(particles, i+N/2, j);
         }
     }
-    // Compute the Slater determinant
-    D_sum = arma::det(m_D_up)*arma::det(m_D_down);
+
+    //m_DI_up = m_D_up.i();
 }
 
 arma::vec SimpleGaussianSlater::SingleDerivative(
     std::vector<std::unique_ptr<class Particle>> &particles,
-    int index,
-    int n
+    int i,
+    int j
 )
 {
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
 
-    arma::vec pos = particles[index]->getPosition();
+    arma::vec pos = particles[i]->getPosition();
+    double r2 = arma::sum(arma::square(pos));
+    double e = exp(-m_alpha*m_omega*r2);
 
-    arma::vec dphi(2);
-    switch (n)
+    arma::vec dphi(numberofdimensions);
+    switch (j)
     {
         case 0:
-            return -m_alpha*m_omega*pos;
+            return -m_alpha*m_omega*pos*e;
         case 1:
-            for (int i = 0; i < numberofdimensions; i++)
-            {
-                dphi[i] = m_omega*(1/pos[i] - m_alpha*m_omega*pos[i]);
-            }
-            return dphi;
+            dphi(0) = sqrt(m_omega) - m_alpha*m_omega*pos(0);
+            dphi(1) = -m_alpha*m_omega*pos(1);
+            return dphi*e;
         case 2:
-            for (int i = 0; i < numberofdimensions; i++)
-            {
-                dphi[i] = 2*m_omega*pos[i]/(m_omega*pos[i]*pos[i] - 1) - m_alpha*m_omega*pos[i];
-            }
-            return dphi;
+            dphi(0) = -m_alpha*m_omega*pos(0);
+            dphi(1) = sqrt(m_omega) - m_alpha*m_omega*pos(1);
+            return dphi*e;
+    }
+}
+
+arma::vec SimpleGaussianSlater::SingleDerivative(
+    std::vector<std::unique_ptr<class Particle>> &particles,
+    int i,
+    int j,
+    arma::vec step
+)
+{
+    int numberofparticles = particles.size();
+    int numberofdimensions = particles[0]->getNumberofDimensions();
+
+    arma::vec pos = particles[i]->getPosition() + step;
+    double r2 = arma::sum(arma::square(pos));
+    double e = exp(-m_alpha*m_omega*r2);
+
+    arma::vec dphi(numberofdimensions);
+    switch (j)
+    {
+        case 0:
+            return -m_alpha*m_omega*pos*e;
+        case 1:
+            dphi(0) = sqrt(m_omega) - m_alpha*m_omega*pos(0);
+            dphi(1) = -m_alpha*m_omega*pos(1);
+            return dphi*e;
+        case 2:
+            dphi(0) = -m_alpha*m_omega*pos(0);
+            dphi(1) = sqrt(m_omega) - m_alpha*m_omega*pos(1);
+            return dphi*e;
     }
 }
 
 double SimpleGaussianSlater::DoubleDerivative(
     std::vector<std::unique_ptr<class Particle>> &particles,
-    int index,
-    int n
+    int i,
+    int j
 )
 {
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
 
-    arma::vec pos = particles[index]->getPosition();
+    arma::vec pos = particles[i]->getPosition();
     double r2 = arma::sum(arma::square(pos));
+    double e = exp(-m_alpha*m_omega*r2/2);
 
     double alpha2 = m_alpha*m_alpha;
     double omega2 = m_omega*m_omega;
-    switch(n)
+    switch(j)
     {
         case 0:
-            return alpha2*omega2*r2 - 2*m_alpha*m_omega;
+            return (alpha2*omega2*r2 - 2*m_alpha*m_omega)*e;
         case 1:
-            return -2*m_alpha*m_omega - m_alpha*m_omega*pos[0]*(sqrt(m_omega) 
-                    - m_alpha*m_omega*pos[0]) - alpha2*omega2*pos[1]*pos[1];
+            return (-2*m_alpha*m_omega - m_alpha*m_omega*pos(0)*(sqrt(m_omega) 
+                    - m_alpha*m_omega*pos(0)) - alpha2*omega2*pos(1)*pos(1))*e;
         case 2:
-            return -2*m_alpha*m_omega - m_alpha*m_omega*pos[1]*(sqrt(m_omega) 
-                    - m_alpha*m_omega*pos[1]) - alpha2*omega2*pos[0]*pos[0];
+            return (-2*m_alpha*m_omega - m_alpha*m_omega*pos[1]*(sqrt(m_omega) 
+                    - m_alpha*m_omega*pos(1)) - alpha2*omega2*pos(0)*pos(0))*e;
     }
 }
 
@@ -122,19 +166,29 @@ double SimpleGaussianSlater::LocalEnergy(std::vector<std::unique_ptr<class Parti
 {
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
+    int N2 = numberofparticles/2;
 
     double kinetic = 0;
     double potential = 0;
     for (int i = 0; i < numberofparticles; i++)
     {
-        int j = (i < numberofparticles/2) ? 0 : 3;
-        for (int j = 0; j < 3; j++)
+        if (i < numberofparticles/2) // Spin up
         {
-            kinetic += DoubleDerivative(particles, i, j);
+            for (int j = 0; j < N2; j++)
+            {
+                kinetic += DoubleDerivative(particles, i, j)*m_DI_up(j, i);
+            }       
+        }
+        else // Spin down
+        {
+            for (int j = 0; j < N2; j++)
+            {
+                kinetic += DoubleDerivative(particles, i, j)*m_DI_down(j, i);
+            }
         }
 
         arma::vec pos = particles[i]->getPosition();
-        for (int j; j < numberofdimensions; j++)
+        for (int j = 0; j < numberofdimensions; j++)
         {
             potential += pos(j)*pos(j);
         }
@@ -151,13 +205,24 @@ arma::vec SimpleGaussianSlater::QuantumForce(
 )
 {
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    arma::vec pos = particles[index]->getPosition();
+    int numberofparticles = particles.size();
+    int N2 = numberofparticles/2;
     arma::vec qforce(numberofdimensions);
-    for (int i = 0; i < numberofdimensions; i++)
+    if (index < N2)
     {
-        qforce(i) = pos(i);
+        for (int j = 0; j < N2; j++)
+        {
+            qforce = SingleDerivative(particles, index, j)*m_DI_up(j, index);
+        }
     }
-    return -4*m_alpha*qforce;
+    else
+    {
+        for (int j = 0; j < N2; j++)
+        {
+            qforce = SingleDerivative(particles, index, j)*m_DI_down(j, index);
+        }
+    }
+    return 2*qforce;
 }
 
 arma::vec SimpleGaussianSlater::QuantumForce(
@@ -167,35 +232,52 @@ arma::vec SimpleGaussianSlater::QuantumForce(
 )
 {   
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    arma::vec pos = particles[index]->getPosition();
+    int numberofparticles = particles.size();
+    int N2 = numberofparticles/2;
     arma::vec qforce(numberofdimensions);
-    for (int i = 0; i < numberofdimensions; i++)
+    if (index < N2)
     {
-        qforce(i) = pos(i) + Step(i);
+        for (int j = 0; j < N2; j++)
+        {
+            qforce = SingleDerivative(particles, index, j, Step)*m_DI_up(j, index);
+        }
     }
-    return -4*m_alpha*qforce; 
+    else
+    {
+        for (int j = 0; j < N2; j++)
+        {
+            qforce = SingleDerivative(particles, index, j, Step)*m_DI_down(j, index);
+        }
+    }
+    return 2*qforce;
 }
 
 double SimpleGaussianSlater::w(std::vector<std::unique_ptr<class Particle>> &particles,
-    const int index, 
+    const int index,
     const arma::vec step
 )
 {
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    arma::vec pos = particles[index]->getPosition();
-    double dr2 = 0;
-    for (int i = 0; i < numberofdimensions; i++)
+    int numberofparticles = particles.size();
+    int N2 = numberofparticles/2;
+
+    double R = 0;
+    if (index < N2)
     {
-        dr2 += (2*pos(i) + step(i))*step(i);
+        for (int j = 0; j < N2; j++)
+        {
+            R += EvalWavefunction(particles, index, j, step)*m_DI_up(j, index);
+        }
     }
-
-    arma::vec pos1 = particles[0]->getPosition();
-    arma::vec pos2 = particles[1]->getPosition();
-
-    double r12_old = arma::norm(pos1 - pos2);
-    double r12_new = arma::norm(pos + step - particles[(index+1)%2]->getPosition());
-
-    return std::exp(-2*m_alpha*dr2)*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
+    else
+    {
+        for (int j = 0; j < N2; j++)
+        {
+            R += EvalWavefunction(particles, index, j, step)*m_DI_down(j, index);
+        }
+    }
+    
+    return R;
 }
 
 // Take the derivative of the the wavefunction as a function of the parameters alpha, beta
@@ -233,29 +315,94 @@ double SimpleGaussianSlater::Hermite_poly(int n, arma::vec pos)
         case 0:
             return 1;
         case 1:
-            return sqrt(m_omega)*pos[0];
+            return sqrt(m_omega)*pos(0);
         case 2:
-            return sqrt(m_omega)*pos[1];
+            return sqrt(m_omega)*pos(1);
         case 3:
-            return m_omega*pos[0]*pos[1];
+            return m_omega*pos(0)*pos(1);
         case 4:
-            return m_omega*pos[0]*pos[0] - 1;
+            return m_omega*pos(0)*pos(0) - 1;
         case 5:
-            return m_omega*pos[1]*pos[1] - 1;
+            return m_omega*pos(1)*pos(1) - 1;
+    }
+}
+
+void SimpleGaussianSlater::UpdateInverseSlater(
+    std::vector<std::unique_ptr<class Particle>> &particles,
+    int k,
+    double R,
+    arma::vec step
+)
+{
+    int numberofparticles = particles.size();
+    int N2 = numberofparticles/2;
+
+    if (k < N2)
+    {
+        for (int i = 0; i < N2; i++)
+        {
+            for (int j = 0; j < N2; j++)
+            {
+                if (j == i)
+                {
+                    m_DI_up(k,j) = m_DI_up(k,i)/R;
+                    for (int l = 0; l < N2; l++)
+                    {
+                        m_DI_up(k,j) *= m_D_up(i,l)*m_DI_up(l,j);
+                    }
+                }
+                else
+                {
+                    double tmp = 0;
+                    for (int l = 0; l < N2; l++)
+                    {
+                        tmp += EvalWavefunction(particles, i, l, step)*m_DI_up(l,j);
+                    }
+                    m_DI_up(k,j) -= m_DI_up(k,i)/R*tmp;
+                }
+            }
+        }
+
+    }
+    else
+    {
+        for (int i = 0; i < N2; i++)
+        {
+            for (int j = 0; j < N2; j++)
+            {
+                if (j == i)
+                {
+                    m_DI_down(k-N2,j) = m_DI_down(k-N2,i)/R;
+                    for (int l = 0; l < N2; l++)
+                    {
+                        m_DI_down(k-N2,j) *= m_D_down(i-N2,l)*m_DI_down(l,j);
+                    }
+                }
+                else
+                {
+                    double tmp = 0;
+                    for (int l = 0; l < N2; l++)
+                    {
+                        tmp += EvalWavefunction(particles, i, l, step)*m_DI_down(l,j);
+                    }
+                    m_DI_down(k-N2,j) -= m_DI_down(k-N2,i)/R*tmp;
+                }
+            }
+        }
     }
 }
 
 
 
 
-SimpleGaussianNumerical::SimpleGaussianNumerical(double alpha, double beta, double dx, int N) : SimpleGaussianSlater(alpha, beta, N)
+SimpleGaussianSlaterNumerical::SimpleGaussianSlaterNumerical(double alpha, double beta, double dx, int N) : SimpleGaussianSlater(alpha, beta, N)
 {
     m_alpha = alpha;
     m_dx = dx;
     m_beta_z = {1.0, 1.0, beta};
 }
 
-double SimpleGaussianNumerical::EvaluateSingleParticle(class Particle particle)
+double SimpleGaussianSlaterNumerical::EvaluateSingleParticle(class Particle particle)
 {
     int numnerofdimensions = particle.getNumberofDimensions();
     arma::vec pos = particle.getPosition();
@@ -267,7 +414,7 @@ double SimpleGaussianNumerical::EvaluateSingleParticle(class Particle particle)
     return std::exp(-m_alpha*r2);
 }
 
-double SimpleGaussianNumerical::EvaluateSingleParticle(class Particle particle, double step, double step_index)
+double SimpleGaussianSlaterNumerical::EvaluateSingleParticle(class Particle particle, double step, double step_index)
 {
     int numnerofdimensions = particle.getNumberofDimensions();
     arma::vec pos = particle.getPosition();
@@ -280,7 +427,7 @@ double SimpleGaussianNumerical::EvaluateSingleParticle(class Particle particle, 
     return std::exp(-m_alpha*r2);
 }
 
-double SimpleGaussianNumerical::DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles)
+double SimpleGaussianSlaterNumerical::DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles)
 {
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
