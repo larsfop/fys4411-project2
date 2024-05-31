@@ -25,6 +25,6 @@ public:
     ) = 0;
     virtual double geta() = 0;
     virtual double Hermite_poly(int n, arma::vec pos) = 0;
-    virtual void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int k, double R, arma::vec step) = 0;
+    virtual void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int index, double R, arma::vec step) = 0;
 };
 

@@ -33,7 +33,7 @@ public:
     );
     double geta() {return 0; };
     double Hermite_poly(int n, arma::vec pos);
-    void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int k, double R, arma::vec step);
+    void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int index, double R, arma::vec step);
 
 private:
     double m_alpha;

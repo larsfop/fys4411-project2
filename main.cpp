@@ -28,7 +28,7 @@ int main(int argc, const char *argv[])
     double alpha, beta, omega, steplength;
     double dx = 1e-1;
     string Filename;
-    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout;
+    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout, Slater;
 
     string input;
     ifstream ifile("config");
@@ -68,6 +68,8 @@ int main(int argc, const char *argv[])
         {Hastings = (bool) stoi(value); }
         else if (name == "NumericalDer")
         {NumericalDer = (bool) stoi(value); }
+        else if (name == "Slater")
+        {Slater = (bool) stoi(value); }
         else if (name=="Printout")
         {Printout = (bool) stoi(value); }
     }
@@ -111,6 +113,8 @@ int main(int argc, const char *argv[])
             {Hastings = (bool) stoi(value); }
             else if (name == "NumericalDer")
             {NumericalDer = (bool) stoi(value); }
+            else if (name == "Slater")
+            {Slater = (bool) stoi(value); }
             else if (name=="Printout")
             {Printout = (bool) stoi(value); }
         }
@@ -181,19 +185,25 @@ int main(int argc, const char *argv[])
             //wavefunction = std::make_unique<class InteractingGaussian>(alpha, beta);
             
         }
+        else if (!Slater)
+        {
+            printf("Slater = 0\n");
+            wavefunction = std::make_unique<class SimpleGaussian>(alpha, beta, omega);
+        }
         else
         {
+            printf("Slater = 1\n");
             wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, omega, numberofparticles);
+            wavefunction->FillSlaterDeterminants(particles);
         }
-        wavefunction->FillSlaterDeterminants(particles);
 
         if (Hastings)
         {
-            solver = std::make_unique<class MetropolisHastings>(std::move(rng));
+            solver = std::make_unique<class MetropolisHastings>(std::move(rng), Slater);
         }
         else
         {
-            solver = std::make_unique<class Metropolis>(std::move(rng));
+            solver = std::make_unique<class Metropolis>(std::move(rng), Slater);
         }
 
         auto system = std::make_unique<System>(
@@ -204,10 +214,10 @@ int main(int argc, const char *argv[])
             Printout
         );
 
-        auto acceptedEquilibrationSteps = system->RunEquilibrationSteps(
-            steplength,
-            numberofEquilibrationSteps
-        );
+        // auto acceptedEquilibrationSteps = system->RunEquilibrationSteps(
+        //     steplength,
+        //     numberofEquilibrationSteps
+        // );
 
         std::unique_ptr<Sampler> sampler;
         if (OptimizeForParameters)
@@ -265,7 +275,7 @@ int main(int argc, const char *argv[])
 
         auto system = std::make_unique<System>(
             std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, omega, dx, numberofparticles),
-            std::make_unique<class Metropolis>(std::move(rng)),
+            std::make_unique<class Metropolis>(std::move(rng), Slater),
             std::move(particles),
             Filename,
             Printout

@@ -7,7 +7,7 @@
 class MetropolisHastings : public MonteCarlo
 {
 public:
-    MetropolisHastings(std::unique_ptr<class Random> rng);
+    MetropolisHastings(std::unique_ptr<class Random> rng, bool slater);
     bool Step(
         double stepsize,
         class WaveFunction &wavefunction,

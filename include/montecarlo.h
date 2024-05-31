@@ -7,7 +7,7 @@
 class MonteCarlo
 {
 public:
-    MonteCarlo(std::unique_ptr<class Random> rng);
+    MonteCarlo(std::unique_ptr<class Random> rng, bool slater);
     virtual ~MonteCarlo() = default;
 
     virtual bool Step(
@@ -18,4 +18,5 @@ public:
 
 protected:
     std::unique_ptr<class Random> m_rng;
+    bool m_slater;
 };

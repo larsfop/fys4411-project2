@@ -7,7 +7,7 @@
 #include <iomanip>
 using namespace std;
 
-MetropolisHastings::MetropolisHastings(std::unique_ptr<class Random> rng) : MonteCarlo(std::move(rng)) {}
+MetropolisHastings::MetropolisHastings(std::unique_ptr<class Random> rng, bool slater) : MonteCarlo(std::move(rng), slater) {}
 
 bool MetropolisHastings::Step(
     double stepsize,
@@ -45,8 +45,10 @@ bool MetropolisHastings::Step(
     double random = m_rng->NextDouble();
     if(random <= R*exp(greens))
     {
-        wavefunction.UpdateInverseSlater(particles, index, R, step);
-
+        if (m_slater)
+        {        
+            wavefunction.UpdateInverseSlater(particles, index, R, step);
+        }
         particles.at(index)->ChangePosition(step);
         return true;
     }

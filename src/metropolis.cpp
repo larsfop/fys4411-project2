@@ -5,7 +5,7 @@
 #include <iostream>
 using namespace std;
 
-Metropolis::Metropolis(std::unique_ptr<class Random> rng) : MonteCarlo(std::move(rng)) {}
+Metropolis::Metropolis(std::unique_ptr<class Random> rng, bool slater) : MonteCarlo(std::move(rng), slater) {}
 
 bool Metropolis::Step(
     double stepsize,
@@ -16,6 +16,7 @@ bool Metropolis::Step(
     int numberofdimension = particles[0]->getNumberofDimensions();
     int numberofparticles = particles.size();
     int index = m_rng->NextInt(numberofparticles-1);
+    //printf("randi = %i\n", index);
 
     arma::vec step(numberofdimension, arma::fill::zeros);
     for (int i = 0; i < numberofdimension; i++)
@@ -26,8 +27,10 @@ bool Metropolis::Step(
 
     if(m_rng->NextDouble() <= R)
     {
-        wavefunction.UpdateInverseSlater(particles, index, R, step);
-
+        if (m_slater)
+        {
+            wavefunction.UpdateInverseSlater(particles, index, R, step);
+        }
         particles.at(index)->ChangePosition(step);
 
         return true;

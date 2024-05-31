@@ -42,7 +42,7 @@ double SimpleGaussian::DoubleDerivative(
     int numberofparticles = particles.size();
 
     // constant term
-    double constant = numberofdimensions*numberofparticles*m_alpha; //*omega
+    double constant = numberofdimensions*numberofparticles*m_alpha*m_omega;
 
     // for two fermions
     arma::vec pos1 = particles[0]->getPosition();
@@ -64,7 +64,7 @@ double SimpleGaussian::DoubleDerivative(
         tmp += pos1(i)*pos2(i);
     }
 
-    double d2psi = m_alpha*m_alpha*(r1_2 + r2_2); //*omega*omega
+    double d2psi = m_omega*m_omega*m_alpha*m_alpha*(r1_2 + r2_2); 
 
     return d2psi - constant; // return d2psi/psi
 }

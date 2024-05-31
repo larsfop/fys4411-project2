@@ -45,10 +45,22 @@ double SimpleGaussianSlater::EvalWavefunction(
     int i, 
     int j)
 {
+    int numberofdimensions = particles[0]->getNumberofDimensions();
+    int N2 = particles.size()/2;
     arma::vec pos = particles[i]->getPosition();
-    double r2 = arma::sum(arma::square(pos));
+    double r2 = 0;
+    for (int i = 0; i < numberofdimensions; i++)
+    {
+        r2 += pos(i)*pos(i);
+    }
+    double wf = Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
 
-    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2.);
+    // bool spin = i < N2 ? true : false;
+    // arma::mat &Slater = spin ? m_D_up : m_D_down;
+    // int index = spin ? i : i - N2;
+    // Slater(index,j) = wf;
+
+    return wf;
 }
 
 double SimpleGaussianSlater::EvalWavefunction(
@@ -57,10 +69,22 @@ double SimpleGaussianSlater::EvalWavefunction(
     int j,
     arma::vec step)
 {
+    int numberofdimensions = particles[0]->getNumberofDimensions();
+    int N2 = particles.size()/2;
     arma::vec pos = particles[i]->getPosition() + step;
-    double r2 = arma::sum(arma::square(pos));
+    double r2 = 0;
+    for (int i = 0; i < numberofdimensions; i++)
+    {
+        r2 += pos(i)*pos(i);
+    }
+    double wf = Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2);
 
-    return Hermite_poly(j, pos)*exp(-m_alpha*m_omega*r2/2.);
+    // bool spin = i < N2 ? true : false;
+    // arma::mat &Slater = spin ? m_D_up : m_D_down;
+    // int index = spin ? i : i - N2;
+    // Slater(index,j) = wf;
+
+    return wf;
 }
 
 void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<class Particle>> &particles)
@@ -77,8 +101,11 @@ void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<cl
     }
     m_D_sum = arma::det(m_D_up)*arma::det(m_D_down);
 
-    m_DI_up = arma::inv(m_D_down);
+    m_DI_up = arma::inv(m_D_up);
     m_DI_down = arma::inv(m_D_down);
+
+    // (m_D_up*m_DI_up).print();
+    // (m_D_down*m_DI_down).print();
 }
 
 arma::vec SimpleGaussianSlater::SingleDerivative(
@@ -91,8 +118,11 @@ arma::vec SimpleGaussianSlater::SingleDerivative(
     int numberofdimensions = particles[0]->getNumberofDimensions();
 
     arma::vec pos = particles[i]->getPosition();
-    double r2 = arma::sum(arma::square(pos));
-    double e = exp(-m_alpha*m_omega*r2);
+    double r2 = 0;
+    for (int i = 0; i < numberofdimensions; i++)
+    {
+        r2 += pos(i)*pos(i);
+    }    double e = exp(-m_alpha*m_omega*r2);
 
     arma::vec dphi(numberofdimensions);
     switch (j)
@@ -121,8 +151,11 @@ arma::vec SimpleGaussianSlater::SingleDerivative(
     int numberofdimensions = particles[0]->getNumberofDimensions();
 
     arma::vec pos = particles[i]->getPosition() + step;
-    double r2 = arma::sum(arma::square(pos));
-    double e = exp(-m_alpha*m_omega*r2);
+    double r2 = 0;
+    for (int i = 0; i < numberofdimensions; i++)
+    {
+        r2 += pos(i)*pos(i);
+    }    double e = exp(-m_alpha*m_omega*r2);
 
     arma::vec dphi(numberofdimensions);
     switch (j)
@@ -150,7 +183,11 @@ double SimpleGaussianSlater::DoubleDerivative(
     int numberofdimensions = particles[0]->getNumberofDimensions();
 
     arma::vec pos = particles[i]->getPosition();
-    double r2 = arma::sum(arma::square(pos));
+    double r2 = 0;
+    for (int i = 0; i < numberofdimensions; i++)
+    {
+        r2 += pos(i)*pos(i);
+    }
     double e = exp(-m_alpha*m_omega*r2/2);
 
     double alpha2 = m_alpha*m_alpha;
@@ -160,11 +197,19 @@ double SimpleGaussianSlater::DoubleDerivative(
         case 0:
             return (alpha2*omega2*r2 - 2*m_alpha*m_omega)*e;
         case 1:
-            return (-2*m_alpha*m_omega - m_alpha*m_omega*pos(0)*(sqrt(m_omega) 
-                    - m_alpha*m_omega*pos(0)) - alpha2*omega2*pos(1)*pos(1))*e;
+            return (-4*m_alpha*sqrt(m_omega)*m_omega*pos(0)
+                    + alpha2*omega2*sqrt(m_omega)*pos(0)*r2)*e;
         case 2:
-            return (-2*m_alpha*m_omega - m_alpha*m_omega*pos[1]*(sqrt(m_omega) 
-                    - m_alpha*m_omega*pos(1)) - alpha2*omega2*pos(0)*pos(0))*e;
+            return (-4*m_alpha*sqrt(m_omega)*m_omega*pos(1)
+                    + alpha2*omega2*sqrt(m_omega)*pos(1)*r2)*e;
+        case 3:
+            return m_alpha*omega2*pos(0)*pos(1)*(m_alpha*m_omega*r2 - 6)*e;
+        case 4:
+            return (2*m_omega*(1 + m_alpha) - 6*m_alpha*omega2*pos(0)*pos(0)
+                    + alpha2*omega2*(m_omega*pos(0)*pos(0)*r2 - r2))*e;
+        case 5:
+            return (2*m_omega*(1 + m_alpha) - 6*m_alpha*omega2*pos(1)*pos(1)
+                    + alpha2*omega2*(m_omega*pos(1)*pos(1)*r2 - r2))*e;
     }
 }
 
@@ -213,20 +258,15 @@ arma::vec SimpleGaussianSlater::QuantumForce(
     int numberofdimensions = particles[0]->getNumberofDimensions();
     int numberofparticles = particles.size();
     int N2 = numberofparticles/2;
+
+    bool spin = index < N2 ? true : false;
+    arma::mat Slater = spin ? m_DI_up : m_DI_down;
+    int i = spin ? index : index - N2;
+
     arma::vec qforce(numberofdimensions);
-    if (index < N2)
+    for (int j = 0; j < N2; j++)
     {
-        for (int j = 0; j < N2; j++)
-        {
-            qforce = SingleDerivative(particles, index, j)*m_DI_up(j, index);
-        }
-    }
-    else
-    {
-        for (int j = 0; j < N2; j++)
-        {
-            qforce = SingleDerivative(particles, index, j)*m_DI_down(j, index - N2);
-        }
+        qforce = SingleDerivative(particles, index, j)*Slater(j, i);
     }
     return 2*qforce;
 }
@@ -240,20 +280,15 @@ arma::vec SimpleGaussianSlater::QuantumForce(
     int numberofdimensions = particles[0]->getNumberofDimensions();
     int numberofparticles = particles.size();
     int N2 = numberofparticles/2;
+
+    bool spin = index < N2 ? true : false;
+    arma::mat Slater = spin ? m_DI_up : m_DI_down;
+    int i = spin ? index : index - N2;
+
     arma::vec qforce(numberofdimensions);
-    if (index < N2)
+    for (int j = 0; j < N2; j++)
     {
-        for (int j = 0; j < N2; j++)
-        {
-            qforce = SingleDerivative(particles, index, j, Step)*m_DI_up(j, index);
-        }
-    }
-    else
-    {
-        for (int j = 0; j < N2; j++)
-        {
-            qforce = SingleDerivative(particles, index, j, Step)*m_DI_down(j, index - N2);
-        }
+        qforce = SingleDerivative(particles, index, j, Step)*Slater(j, i);
     }
     return 2*qforce;
 }
@@ -267,23 +302,17 @@ double SimpleGaussianSlater::w(std::vector<std::unique_ptr<class Particle>> &par
     int numberofparticles = particles.size();
     int N2 = numberofparticles/2;
 
+    bool spin = index < N2 ? true : false;
+    arma::mat Slater = spin ? m_DI_up : m_DI_down;
+    int i = spin ? index : index - N2;
+
     double R = 0;
     //for (int i = 0; i < numberofparticles; i++)
     //{
-        if (index < N2)
-        {
-            for (int j = 0; j < N2; j++)
-            {
-                R += EvalWavefunction(particles, index, j, step)*m_DI_up(j, index);
-            }
-        }
-        else
-        {
-            for (int j = 0; j < N2; j++)
-            {
-                R += EvalWavefunction(particles, index, j, step)*m_DI_down(j, index - N2);
-            }
-        }
+    for (int j = 0; j < N2; j++)
+    {
+        R += EvalWavefunction(particles, index, j, step)*Slater(j, i);
+    }
     //}
     
     return R;
@@ -338,7 +367,7 @@ double SimpleGaussianSlater::Hermite_poly(int n, arma::vec pos)
 
 void SimpleGaussianSlater::UpdateInverseSlater(
     std::vector<std::unique_ptr<class Particle>> &particles,
-    int k,
+    int index,
     double R,
     arma::vec step
 )
@@ -346,59 +375,40 @@ void SimpleGaussianSlater::UpdateInverseSlater(
     int numberofparticles = particles.size();
     int N2 = numberofparticles/2;
 
-    if (k < N2)
-    {
-        for (int i = 0; i < N2; i++)
-        {
-            for (int j = 0; j < N2; j++)
-            {
-                if (j == i)
-                {
-                    m_DI_up(k,j) = m_DI_up(k,i)/R;
-                    for (int l = 0; l < N2; l++)
-                    {
-                        m_DI_up(k,j) *= m_D_up(i,l)*m_DI_up(l,j);
-                    }
-                }
-                else
-                {
-                    double tmp = 0;
-                    for (int l = 0; l < N2; l++)
-                    {
-                        tmp += EvalWavefunction(particles, i, l, step)*m_DI_up(l,j);
-                    }
-                    m_DI_up(k,j) -= m_DI_up(k,i)/R*tmp;
-                }
-            }
-        }
+    // Check for spin up (true) or spin down (false)
+    bool spin = index < N2 ? true : false;
+    arma::mat &Slater = spin ? m_DI_up : m_DI_down;
+    int i = spin ? index : index - N2;
 
-    }
-    else
+    arma::mat Slaternew = Slater;
+    for (int k = 0; k < N2; k++)
     {
-        for (int i = 0; i < N2; i++)
+        for (int j = 0; j < N2; j++)
         {
-            for (int j = 0; j < N2; j++)
+            if (j != i)
             {
-                if (j == i)
+                double sum = 0;
+                for (int l = 0; l < N2; l++)
                 {
-                    m_DI_down(k-N2,j) = m_DI_down(k-N2,i)/R;
-                    for (int l = 0; l < N2; l++)
-                    {
-                        m_DI_down(k-N2,j) *= m_D_down(i,l)*m_DI_down(l,j);
-                    }
+                    sum += EvalWavefunction(particles, index, l, step)*Slater(l,j);
                 }
-                else
+                Slaternew(k,j) = Slater(k,j) - Slater(k,i)/R*sum;
+            }
+            else
+            {
+                double sum = 0;
+                for (int l = 0; l < N2; l++)
                 {
-                    double tmp = 0;
-                    for (int l = 0; l < N2; l++)
-                    {
-                        tmp += EvalWavefunction(particles, i, l, step)*m_DI_down(l,j);
-                    }
-                    m_DI_down(k-N2,j) -= m_DI_down(k-N2,i)/R*tmp;
+                    sum += EvalWavefunction(particles, index, l)*Slater(l,j);
                 }
+                Slaternew(k,j) = Slater(k,i)/R*sum;
             }
         }
     }
+    Slater = Slaternew;
+
+    // (m_D_up*m_DI_up).print();
+    // (m_D_down*m_DI_down).print();
 }
 
 
