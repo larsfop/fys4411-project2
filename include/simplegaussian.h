@@ -7,7 +7,7 @@
 class SimpleGaussian : public WaveFunction
 {
 public:
-    SimpleGaussian(const double alpha, double beta, double omega);
+    SimpleGaussian(const double alpha, double beta, double omega, bool Jastrow);
     double Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double LocalEnergy(std::vector<std::unique_ptr<class Particle>> &particles);
@@ -42,7 +42,7 @@ private:
 class SimpleGaussianNumerical : public SimpleGaussian
 {
 public:
-    SimpleGaussianNumerical(double alpha, double beta, double omega, double dx);
+    SimpleGaussianNumerical(double alpha, double beta, double omega, double dx, bool Jastrow);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double EvaluateSingleParticle(class Particle particle);
     double EvaluateSingleParticle(class Particle particle, double step, double step_index);

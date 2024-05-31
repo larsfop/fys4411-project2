@@ -11,7 +11,8 @@ public:
         const double alpha, 
         double beta, 
         double omega,
-        int N
+        int N,
+        bool Jastrow
     );
     double Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles);
     double EvalWavefunction(std::vector<std::unique_ptr<class Particle>> &particles, int i, int j);
@@ -34,6 +35,9 @@ public:
     double geta() {return 0; };
     double Hermite_poly(int n, arma::vec pos);
     void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int index, double R, arma::vec step);
+    arma::vec SingleDerivativeJastrow(std::vector<std::unique_ptr<class Particle>> &particles, int k);
+    double DoubleDerivativeJastrow(std::vector<std::unique_ptr<class Particle>> &particles, int k);
+    double spinParallelFactor(int i, int j, int N2);
 
 private:
     double m_alpha;
@@ -47,13 +51,15 @@ private:
     arma::mat m_DI_down;
     arma::mat m_DI_up;
     double m_D_sum;
+
+    bool m_Jastrow;
 };
 
 
 class SimpleGaussianSlaterNumerical : public SimpleGaussianSlater
 {
 public:
-    SimpleGaussianSlaterNumerical(double alpha, double beta, double omega, double dx, int N);
+    SimpleGaussianSlaterNumerical(double alpha, double beta, double omega, double dx, int N, bool Jastrow);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double EvaluateSingleParticle(class Particle particle);
     double EvaluateSingleParticle(class Particle particle, double step, double step_index);

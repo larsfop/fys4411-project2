@@ -8,7 +8,8 @@ using namespace std;
 SimpleGaussian::SimpleGaussian(
     const double alpha,
     double beta,
-    double omega
+    double omega,
+    bool Jastrow
 )
 {
     m_alpha = alpha;
@@ -73,12 +74,13 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
 {
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    double kinetic = DoubleDerivative(particles);
+    double kinetic =  DoubleDerivative(particles);
 
     double potential = 0;
     for (int i = 0; i < numberofparticles; i++)
     {
         arma::vec pos = particles[i]->getPosition();
+        //cout << exp(m_alpha*m_omega*(pos(0)*pos(0) + pos(1)*pos(1)/2)) << endl;;
         for (int j = 0; j < numberofdimensions; j++)
         {
             potential += pos(j)*pos(j);
@@ -89,7 +91,7 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
     // potential: = 0.5*omega^2*r^2
     // kinetic: 2D: -4*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2)
     //          3D: -6*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2 + 2*z1*z2)
-    return 0.5*(-kinetic + potential); // omega = 1
+    return 0.5*(-kinetic + m_omega*m_omega*potential);
 }
 
 arma::vec SimpleGaussian::QuantumForce(
@@ -142,7 +144,8 @@ double SimpleGaussian::w(std::vector<std::unique_ptr<class Particle>> &particles
     double r12_old = arma::norm(pos1 - pos2);
     double r12_new = arma::norm(pos + step - particles[(index+1)%2]->getPosition());
 
-    return std::exp(-2*m_alpha*dr2)*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
+    // cout << exp(-2*m_alpha*dr2) << endl;;
+    return std::exp(-2*m_alpha*dr2);//*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
 }
 
 // Take the derivative of the the wavefunction as a function of the parameters alpha, beta
@@ -189,6 +192,9 @@ double SimpleGaussian::Hermite_poly(int n, arma::vec pos)
             return m_omega*pos(0)*pos(0) - 1;
         case 5:
             return m_omega*pos(1)*pos(1) - 1;
+        default:
+            cout << "Index out of bounds, func: " << __PRETTY_FUNCTION__ << endl;
+            exit(0);
     }
 }
 
@@ -210,7 +216,7 @@ void SimpleGaussian::UpdateInverseSlater(
 
 
 
-SimpleGaussianNumerical::SimpleGaussianNumerical(double alpha, double beta, double omega, double dx) : SimpleGaussian(alpha, omega, beta)
+SimpleGaussianNumerical::SimpleGaussianNumerical(double alpha, double beta, double omega, double dx, bool Jastrow) : SimpleGaussian(alpha, omega, beta, Jastrow)
 {
     m_alpha = alpha;
     m_dx = dx;

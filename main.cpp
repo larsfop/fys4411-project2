@@ -28,7 +28,7 @@ int main(int argc, const char *argv[])
     double alpha, beta, omega, steplength;
     double dx = 1e-1;
     string Filename;
-    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout, Slater;
+    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout, Slater, Jastrow;
 
     string input;
     ifstream ifile("config");
@@ -70,6 +70,8 @@ int main(int argc, const char *argv[])
         {NumericalDer = (bool) stoi(value); }
         else if (name == "Slater")
         {Slater = (bool) stoi(value); }
+        else if (name == "Jastrow")
+        {Jastrow = (bool) stoi(value); }
         else if (name=="Printout")
         {Printout = (bool) stoi(value); }
     }
@@ -115,6 +117,8 @@ int main(int argc, const char *argv[])
             {NumericalDer = (bool) stoi(value); }
             else if (name == "Slater")
             {Slater = (bool) stoi(value); }
+            else if (name == "Jastrow")
+            {Jastrow = (bool) stoi(value); }
             else if (name=="Printout")
             {Printout = (bool) stoi(value); }
         }
@@ -187,13 +191,22 @@ int main(int argc, const char *argv[])
         }
         else if (!Slater)
         {
-            printf("Slater = 0\n");
-            wavefunction = std::make_unique<class SimpleGaussian>(alpha, beta, omega);
+            wavefunction = std::make_unique<class SimpleGaussian>(
+                alpha, 
+                beta, 
+                omega,
+                Jastrow
+            );
         }
         else
         {
-            printf("Slater = 1\n");
-            wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, omega, numberofparticles);
+            wavefunction = std::make_unique<class SimpleGaussianSlater>(
+                alpha, 
+                beta, 
+                omega, 
+                numberofparticles,
+                Jastrow
+                );
             wavefunction->FillSlaterDeterminants(particles);
         }
 
@@ -274,7 +287,7 @@ int main(int argc, const char *argv[])
         );
 
         auto system = std::make_unique<System>(
-            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, omega, dx, numberofparticles),
+            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, omega, dx, numberofparticles, 0),
             std::make_unique<class Metropolis>(std::move(rng), Slater),
             std::move(particles),
             Filename,
