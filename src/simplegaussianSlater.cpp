@@ -374,7 +374,7 @@ double SimpleGaussianSlater::w(std::vector<std::unique_ptr<class Particle>> &par
     //}
 
     // cout << R << endl;
-    return R*R;
+    return R;
 }
 
 // Take the derivative of the the wavefunction as a function of the parameters alpha, beta
@@ -573,6 +573,22 @@ double SimpleGaussianSlater::spinParallelFactor(int i, int j, int N2)
     return a;
 }
 
+void SimpleGaussianSlater::CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles)
+{
+    int N = particles.size();
+    for (int i = 0; i < N/2; i++)
+    {
+        for (int j = 0; j < N/2; j++)
+        {
+            // Fill each Slater determinant with its wavefunction value
+            m_D_up(i,j) = EvalWavefunction(particles, i, j);
+            m_D_down(i,j) = EvalWavefunction(particles, i+N/2, j);
+        }
+    }
+
+    (m_D_up*m_DI_up).print();
+    (m_D_down*m_DI_down).print();
+}
 
 
 

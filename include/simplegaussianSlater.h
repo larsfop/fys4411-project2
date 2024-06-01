@@ -38,6 +38,7 @@ public:
     arma::vec SingleDerivativeJastrow(std::vector<std::unique_ptr<class Particle>> &particles, int k);
     double DoubleDerivativeJastrow(std::vector<std::unique_ptr<class Particle>> &particles, int k);
     double spinParallelFactor(int i, int j, int N2);
+    void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
 
 private:
     double m_alpha;

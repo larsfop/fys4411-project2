@@ -144,8 +144,8 @@ double SimpleGaussian::w(std::vector<std::unique_ptr<class Particle>> &particles
     double r12_old = arma::norm(pos1 - pos2);
     double r12_new = arma::norm(pos + step - particles[(index+1)%2]->getPosition());
 
-    // cout << exp(-2*m_alpha*dr2) << endl;;
-    return std::exp(-2*m_alpha*dr2);//*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
+    // cout << exp(-m_alpha*dr2) << endl;;
+    return std::exp(-m_alpha*m_omega*dr2/2);//*std::exp(2*(r12_new/(1 + m_beta*r12_new) - r12_old/(1 + m_beta*r12_old))); //*omega
 }
 
 // Take the derivative of the the wavefunction as a function of the parameters alpha, beta
@@ -201,6 +201,7 @@ double SimpleGaussian::Hermite_poly(int n, arma::vec pos)
 void SimpleGaussian::FillSlaterDeterminants(std::vector<std::unique_ptr<class Particle>> &particles)
 {
     std::printf("Used FillSlaterDeterminants, do not, wrong class");
+    exit(0);
 }
 
 void SimpleGaussian::UpdateInverseSlater(
@@ -211,6 +212,12 @@ void SimpleGaussian::UpdateInverseSlater(
 )
 {
     std::printf("Used FillSlaterDeterminants, do not, wrong class");
+    exit(0);
+}
+
+void SimpleGaussian::CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles)
+{
+    exit(0);
 }
 
 

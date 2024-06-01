@@ -29,6 +29,7 @@ public:
     double R,
     arma::vec step
     );
+    void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
 
 private:
     double m_alpha;

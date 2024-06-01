@@ -25,13 +25,15 @@ bool Metropolis::Step(
     }
     double R = wavefunction.w(particles, index, step);
 
-    if(m_rng->NextDouble() <= R)
+    if(m_rng->NextDouble() <= R*R)
     {
         if (m_slater)
         {
             wavefunction.UpdateInverseSlater(particles, index, R, step);
         }
         particles.at(index)->ChangePosition(step);
+
+        // if (m_slater) wavefunction.CheckSlater(particles);
 
         return true;
     }
