@@ -120,7 +120,7 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
     int iterations = 0;
     while (gradient > tolerance && iterations < maxiterations)
     {
-        //cout << "Iteration : " << iterations+1 << endl;
+        cout << "Iteration : " << iterations+1 << endl;
         sampler = this->RunMetropolisSteps(steplength, numberofMetropolisSteps);
         arma::vec energyderivatives = sampler->getEnergyDerivatives();
 
@@ -128,8 +128,8 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
         for (int i = 0; i < nparams-1; i++)
         {
             params(i) -= learningrate*energyderivatives(i)/m_numberofparticles;
-            //cout << "Parameter " << i+1 << " : " << params(i) << endl;
-            //cout << "EnergyDerivative " << i+1 << " : " << energyderivatives(i) << endl;
+            cout << "Parameter " << i+1 << " : " << params(i) << endl;
+            cout << "EnergyDerivative " << i+1 << " : " << energyderivatives(i) << endl;
             gradient += std::abs(energyderivatives(i));
         }
 
@@ -146,7 +146,7 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
 
         iterations++;
     }
-    //cout << "Max iterations : " << iterations << endl;
+    cout << "Max iterations : " << iterations << endl;
     return sampler;
 }
 

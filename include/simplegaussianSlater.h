@@ -39,6 +39,7 @@ public:
     double DoubleDerivativeJastrow(std::vector<std::unique_ptr<class Particle>> &particles, int k);
     double spinParallelFactor(int i, int j, int N2);
     void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
+    bool Jastrow() {return m_Jastrow; };
 
 private:
     double m_alpha;

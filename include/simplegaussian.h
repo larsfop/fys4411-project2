@@ -30,7 +30,9 @@ public:
     arma::vec step
     );
     void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
-
+    bool Jastrow() {return 0; };
+    double spinParallelFactor(int i, int j, int N2) {exit(0); };
+    
 private:
     double m_alpha;
     double m_beta;

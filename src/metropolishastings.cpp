@@ -25,6 +25,7 @@ bool MetropolisHastings::Step(
     arma::vec params = wavefunction.getParameters(); // params = {alpha, beta}
     arma::vec beta_z = {1, 1, params(1)};
 
+    // Sample new position
     arma::vec pos = particles[index]->getPosition();
     arma::vec step(numberofdimensions);
     for (int i = 0; i < numberofdimensions; i++)
@@ -32,6 +33,7 @@ bool MetropolisHastings::Step(
         step(i) = sqrt_dt*m_rng->NextGaussian() + qforce(i)*stepsize*D;
     }
 
+    // Compute the quantum force
     arma::vec qforcenew = wavefunction.QuantumForce(particles, index, step);
     double greens = 0;
     for (int i = 0; i < numberofdimensions; i++)
@@ -40,10 +42,35 @@ bool MetropolisHastings::Step(
         (qforce(i) - qforcenew(i)) - (pos(i) + step(i)) + pos(i));
     }
 
+    // Slater determinant ratio
     double R = wavefunction.w(particles, index, step);
 
+    // Compute Jastrow ratio
+    bool Jastrow = wavefunction.Jastrow();
+    double J = Jastrow ? 0 : 1;
+    if (Jastrow) 
+    {
+        for (int j = 0; j < index; j++)
+        {
+            arma::vec pos_j = particles[j]->getPosition();
+            double a = wavefunction.spinParallelFactor(index, j, numberofparticles/2);
+            double r_old = arma::norm(pos - pos_j);
+            double r_new = arma::norm(pos + step - pos_j);
+            J += a*r_new/(1 + params(1)*r_old);
+        }
+        for (int j = index+1; j < numberofparticles; j++)
+        {
+            arma::vec pos_j = particles[j]->getPosition();
+            double a = wavefunction.spinParallelFactor(index, j, numberofparticles/2);
+            double r_old = arma::norm(pos - pos_j);
+            double r_new = arma::norm(pos + step - pos_j);
+            J += a*r_new/(1 + params(1)*r_old);
+        }
+        J = exp(J);
+    }
+
     double random = m_rng->NextDouble();
-    if(random <= R*exp(greens))
+    if(random <= R*R*exp(greens))
     {
         if (m_slater)
         {        

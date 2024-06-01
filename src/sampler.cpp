@@ -91,9 +91,10 @@ Sampler::Sampler(std::vector<std::unique_ptr<class Sampler>> &samplers, std::str
 
 void Sampler::Sample(bool acceptedstep, class System *system)
 {
-    auto localenergy = system->ComputeLocalEnergy();
+    double localenergy = system->ComputeLocalEnergy();
     m_Energy += localenergy;
     m_Energy2 += localenergy*localenergy;
+    // printf("E_L = %f ; E = %f ; E^2 = %f ; sqrt = %f\n", localenergy, m_Energy, m_Energy2, sqrt(m_Energy2));
     m_stepnumber++;
     m_numberofacceptedsteps += acceptedstep;
 
@@ -167,6 +168,7 @@ void Sampler::printOutput()
     cout << endl;
     cout << "  -- Results -- " << endl;
     cout << " Energy : " << m_Energy << endl;
+    cout << " Energy^2 : " << m_Energy2 << endl;
     cout << " Variance : " << m_variance << endl;
     cout << endl;
 }

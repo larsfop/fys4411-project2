@@ -24,8 +24,10 @@ public:
         const arma::vec Step
     ) = 0;
     virtual double geta() = 0;
+    virtual double spinParallelFactor(int i, int j, int N2) = 0;
     virtual double Hermite_poly(int n, arma::vec pos) = 0;
     virtual void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int index, double R, arma::vec step) = 0;
     virtual void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles) = 0;
+    virtual bool Jastrow() = 0;
 };
 

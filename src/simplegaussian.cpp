@@ -77,6 +77,7 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
     double kinetic =  DoubleDerivative(particles);
 
     double potential = 0;
+    double pot_int = 0;
     for (int i = 0; i < numberofparticles; i++)
     {
         arma::vec pos = particles[i]->getPosition();
@@ -85,13 +86,20 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
         {
             potential += pos(j)*pos(j);
         }
+
+        for (int j = i + 1; j < numberofparticles; j++)
+        {
+            arma::vec pos_j = particles[j]->getPosition();
+            double r_ij = arma::norm(pos - pos_j);
+            pot_int += 1.0/r_ij;
+        }
     }
 
     // E_L for two fermions
     // potential: = 0.5*omega^2*r^2
     // kinetic: 2D: -4*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2)
     //          3D: -6*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2 + 2*z1*z2)
-    return 0.5*(-kinetic + m_omega*m_omega*potential);
+    return 0.5*(-kinetic + m_omega*m_omega*potential);// + pot_int;
 }
 
 arma::vec SimpleGaussian::QuantumForce(
@@ -164,7 +172,7 @@ arma::vec SimpleGaussian::dPsidParam(std::vector<std::unique_ptr<class Particle>
             r2(j) += pos(j)*pos(j);
         }
     }
-    derivative(0) = -(r2(0) + r2(1) + m_beta*r2(2));
+    derivative(0) = -m_omega*(r2(0) + r2(1))/2;
     derivative(1) = -m_alpha*r2(2);
     return derivative; // ex. Psi[alpha]/Psi -> Psi[alpha] = dPsi/dalpha
 }
