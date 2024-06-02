@@ -29,5 +29,9 @@ public:
     virtual void UpdateInverseSlater(std::vector<std::unique_ptr<class Particle>> &particles, int index, double R, arma::vec step) = 0;
     virtual void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles) = 0;
     virtual bool Jastrow() = 0;
+    virtual double getKinetic() = 0;
+    virtual double getPotential() = 0;
+    virtual void KeepOldInverseSlater() = 0;
+    virtual void ChangeOldInverseSlater() = 0;
 };
 

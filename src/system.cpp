@@ -52,6 +52,7 @@ std::unique_ptr<class Sampler> System::RunMetropolisSteps(
         if (m_Printout)
         {
             sampler->WriteEnergiestoFile(*this, i+1);
+            sampler->SampleHist(this);
         }
     }
         
@@ -134,6 +135,7 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
             cout << "Parameter " << i+1 << " : " << params(i) << endl;
             cout << "EnergyDerivative " << i+1 << " : " << energyderivatives(i) << endl;
             gradient += std::abs(energyderivatives(i));
+            sampler->printOutput();
         }
 
         sampler->setFilename(m_Filename);
@@ -190,4 +192,19 @@ std::unique_ptr<class Sampler> System::VaryParameters(
     }
 
     return sampler;
+}
+
+arma::vec System::getPosition(int index)
+{
+    return m_particles[index]->getPosition();
+}
+
+double System::getKinetic()
+{
+    return m_wavefunction->getKinetic();
+}
+
+double System::getPotential()
+{
+    return m_wavefunction->getPotential();
 }

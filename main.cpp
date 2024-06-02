@@ -12,7 +12,6 @@
 #include "Particle.h"
 #include "random.h"
 #include "simplegaussian.h"
-//#include "WaveFunctions/interactinggaussian.h"
 #include "simplegaussianSlater.h"
 #include "initialstate.h"
 #include "metropolis.h"
@@ -150,7 +149,7 @@ int main(int argc, const char *argv[])
             << endl;
     outfile.close();
 
-    std::ofstream ofile("Energies.dat");
+    std::ofstream ofile("Outputs/Energies.dat");
     ofile.close();
 
     auto t1 = std::chrono::system_clock::now();
@@ -201,7 +200,8 @@ int main(int argc, const char *argv[])
                 beta, 
                 omega, 
                 numberofparticles,
-                Jastrow
+                Jastrow,
+                Interacting
                 );
             wavefunction->FillSlaterDeterminants(particles);
         }
@@ -263,6 +263,8 @@ int main(int argc, const char *argv[])
     //sampler->WritetoFile();
 
     sampler->printOutput();
+
+    sampler->SaveHist(Jastrow);
     
     auto t2 = std::chrono::system_clock::now();
 

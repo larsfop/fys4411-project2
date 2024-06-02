@@ -3,6 +3,11 @@
 #include "sampler.h"
 #include "system.h"
 #include <iostream>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <numeric>
+#include <sstream>
 #include <iomanip>
 
 using std::cout;
@@ -30,6 +35,9 @@ Sampler::Sampler(
     m_steplength = steplength;
     m_numberofacceptedsteps = 0;
 
+    m_Kinetic = 0;
+    m_Potential = 0;
+
     m_DeltaPsi = arma::vec(2);
     m_PsiEnergyDerivative = arma::vec(2);
     m_params = arma::vec(2);
@@ -49,6 +57,9 @@ Sampler::Sampler(std::vector<std::unique_ptr<class Sampler>> &samplers, std::str
     m_numberofacceptedsteps = 0;
     m_stepnumber = 0;
 
+    m_Kinetic = 0;
+    m_Potential = 0;
+
     m_Filename = samplers[0]->m_Filename;
     int N_params = samplers[0]->m_params.n_elem;
     m_DeltaPsi = arma::vec(N_params);
@@ -59,6 +70,9 @@ Sampler::Sampler(std::vector<std::unique_ptr<class Sampler>> &samplers, std::str
         m_Energy += sampler->m_Energy;
         m_Energy2 += sampler->m_Energy2;
         //m_variance += sampler->m_variance;
+
+        m_Kinetic += sampler->m_Kinetic;
+        m_Potential += sampler->m_Potential;
         
         m_DeltaPsi += sampler->m_DeltaPsi;
         m_PsiEnergyDerivative += sampler->m_PsiEnergyDerivative;
@@ -71,6 +85,7 @@ Sampler::Sampler(std::vector<std::unique_ptr<class Sampler>> &samplers, std::str
         {
             m_params(i) += sampler->m_params(i);
         }
+        m_hist.insert(m_hist.end(), sampler->m_hist.begin(), sampler->m_hist.end());
     }
 
     m_Energy /= m_numberofthreads;
@@ -98,11 +113,24 @@ void Sampler::Sample(bool acceptedstep, class System *system)
     m_stepnumber++;
     m_numberofacceptedsteps += acceptedstep;
 
+    m_Kinetic += system->getKinetic();
+    m_Potential += system->getPotential();
+
     arma::vec dparams = system->ComputeDerivatives();
     m_DeltaPsi += dparams;
     m_PsiEnergyDerivative += dparams*localenergy;
 
     m_params = system->getParameters();
+}
+
+void Sampler::SampleHist(class System *system)
+{
+    arma::vec pos = system->getPosition(0);
+    for (int i = 1; i < m_numberofparticles; i++)
+    {
+        arma::vec posi = system->getPosition(i);
+        m_hist.push_back(arma::norm(pos - posi));
+    }
 }
 
 void Sampler::ComputeDerivatives()
@@ -119,6 +147,9 @@ void Sampler::ComputeAverages()
     m_Energy /= m_numberofMetropolisSteps;
     m_Energy2 /= m_numberofMetropolisSteps;
     m_variance = m_Energy2 - m_Energy*m_Energy;
+
+    m_Kinetic /= 1.0*m_numberofMetropolisSteps;
+    m_Potential /= 1.0*m_numberofMetropolisSteps;
 
     //m_stepnumber /= m_numberofthreads;
     //m_numberofacceptedsteps /= m_numberofthreads;
@@ -170,6 +201,8 @@ void Sampler::printOutput()
     cout << " Energy : " << m_Energy << endl;
     cout << " Energy^2 : " << m_Energy2 << endl;
     cout << " Variance : " << m_variance << endl;
+    cout << " Kinetic : " << m_Kinetic << endl;
+    cout << " Potential : " << m_Potential << endl;
     cout << endl;
 }
 
@@ -211,7 +244,7 @@ void Sampler::WritetoFile()
 void Sampler::WriteEnergiestoFile(System &system, int iteration)
 {
     int width = 16;
-    std::ofstream ofile("Outputs/Energies1.dat", std::ofstream::app);
+    std::ofstream ofile("Outputs/Energies.dat", std::ofstream::app);
     ofile.fixed;
     ofile.precision(15);
     ofile << m_Energy/iteration << endl;
@@ -221,4 +254,13 @@ void Sampler::WriteEnergiestoFile(System &system, int iteration)
 void Sampler::setParameters(double alpha, double beta)
 {
     m_params = {alpha, beta};
+}
+
+void Sampler::SaveHist(bool Jastrow)
+{
+    std::string Filename = Jastrow ? "IW" : "SG";
+    std::ofstream output_file("Outputs/histogram_"+Filename+".dat");
+
+    std::ostream_iterator<double> output_iterator(output_file, "\n");
+    std::copy(std::begin(m_hist), std::end(m_hist), output_iterator);
 }
