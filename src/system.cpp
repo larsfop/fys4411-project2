@@ -16,6 +16,7 @@ System::System(
     std::unique_ptr<class MonteCarlo> solver,
     std::vector<std::unique_ptr<class Particle>> particles,
     std::string Filename,
+    bool Hastings,
     bool Printout
 )
 {
@@ -27,6 +28,7 @@ System::System(
 
     m_Filename = Filename;
     m_Printout = Printout;
+    m_Hastings = Hastings;
 }
 
 std::unique_ptr<class Sampler> System::RunMetropolisSteps(
@@ -106,6 +108,7 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
 )
 {
     int nparams = m_wavefunction->getParameters().n_elem;
+    nparams = m_Hastings ? nparams : nparams - 1;
 
     arma::vec params = m_wavefunction->getParameters();
     double gradient = 1;
@@ -125,7 +128,7 @@ std::unique_ptr<class Sampler> System::FindOptimalParameters(
         arma::vec energyderivatives = sampler->getEnergyDerivatives();
 
         gradient = 0;
-        for (int i = 0; i < nparams-1; i++)
+        for (int i = 0; i < nparams; i++)
         {
             params(i) -= learningrate*energyderivatives(i)/m_numberofparticles;
             cout << "Parameter " << i+1 << " : " << params(i) << endl;

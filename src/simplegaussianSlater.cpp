@@ -412,26 +412,24 @@ arma::vec SimpleGaussianSlater::dPsidParam(std::vector<std::unique_ptr<class Par
 
     arma::vec derivative(2);
     double der = 0;
-    // arma::vec r2(3);
-    double r2 = 0;
+    arma::vec r2(3);
+    //double r2 = 0;
     for (int i = 0; i < numberofparticles; i++)
     {
         arma::vec pos = particles[i]->getPosition();
         for (int j = 0; j < numberofdimensions; j++)
         {
-            r2 += pos(j)*pos(j);
+            r2(j) += pos(j)*pos(j);
         }        
-        
+
         arma::mat Slater = (i < N2) ? m_DI_up : m_DI_down;
         for (int j = 0; j < N2; j++)
         {
-            der -= m_omega/2*r2*EvalWavefunction(particles, i, j)*Slater(j,i%N2);
+            der -= m_omega*(r2(0) + r2(1))/2;//*EvalWavefunction(particles, i, j)*Slater(j,i%N2);
         }
-        
-
     }
-    derivative(0) = der;
-    //derivative(1) = -m_alpha*r2(2);
+    derivative(0) = -m_omega*(r2(0) + r2(1))/2;//der;
+    // derivative(1) = -m_alpha*r2(2);
     return derivative; // ex. Psi[alpha]/Psi -> Psi[alpha] = dPsi/dalpha
 }
 

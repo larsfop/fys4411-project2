@@ -9,17 +9,18 @@ DATA_ID = "../Outputs/"
 def data_path(dat_id):
     return os.path.join(DATA_ID, dat_id)
 
-infile = open(data_path("Energies.dat"),'r')
+infile = open(data_path("Energies1.dat"),'r')
 
 from numpy import log2, zeros, mean, var, sum, loadtxt, arange, array, cumsum, dot, transpose, diagonal, sqrt
 from numpy.linalg import inv
+import numpy as np
 
 def block(x):
     # preliminaries
     n = len(x)
     d = int(log2(n))
     s, gamma = zeros(d), zeros(d)
-    mu = mean(x)
+    mu = np.mean(x)
 
     # estimate the auto-covariance and variances 
     # for each blocking transformation
@@ -28,7 +29,7 @@ def block(x):
         # estimate autocovariance of x
         gamma[i] = (n)**(-1)*sum( (x[0:(n-1)]-mu)*(x[1:n]-mu) )
         # estimate variance of x
-        s[i] = var(x)
+        s[i] = np.var(x)
         # perform blocking transformation
         x = 0.5*(x[0::2] + x[1::2])
    
@@ -48,7 +49,9 @@ def block(x):
 
 
 data = np.loadtxt('../Outputs/Energies1.dat')
-step = int(2**16)
+step = int(2**18)
+
+print(len(data), step)
 
 for i in range(int(len(data)/step)):
     #x = data[-1:-step-1:-1]

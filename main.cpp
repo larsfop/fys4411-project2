@@ -128,7 +128,7 @@ int main(int argc, const char *argv[])
 
     double eta = 0.1;
     double tol = 1e-5;
-    int maxiter = 1e2;
+    int maxiter = 2e2;
 
     string Path = "Outputs/";
     int width = 16;
@@ -184,18 +184,14 @@ int main(int argc, const char *argv[])
         std::unique_ptr<class WaveFunction> wavefunction;
         std::unique_ptr<class MonteCarlo> solver;
 
-        if (Interacting)
-        {
-            //wavefunction = std::make_unique<class InteractingGaussian>(alpha, beta);
-            
-        }
-        else if (!Slater)
+        if (!Slater)
         {
             wavefunction = std::make_unique<class SimpleGaussian>(
                 alpha, 
                 beta, 
                 omega,
-                Jastrow
+                Jastrow,
+                Interacting
             );
         }
         else
@@ -224,13 +220,14 @@ int main(int argc, const char *argv[])
             std::move(solver),
             std::move(particles),
             Filename,
+            Hastings,
             Printout
         );
 
-        // auto acceptedEquilibrationSteps = system->RunEquilibrationSteps(
-        //     steplength,
-        //     numberofEquilibrationSteps
-        // );
+        auto acceptedEquilibrationSteps = system->RunEquilibrationSteps(
+            steplength,
+            numberofEquilibrationSteps
+        );
 
         std::unique_ptr<Sampler> sampler;
         if (OptimizeForParameters)
@@ -270,7 +267,7 @@ int main(int argc, const char *argv[])
     auto t2 = std::chrono::system_clock::now();
 
     std::chrono::duration<double> time = t2 - t1;
-    cout << fixed << setprecision(3) << endl;
+    cout << std::fixed << setprecision(3) << endl;
     cout << "Time : " << time.count() << " seconds" << endl;
 
     if (NumericalDer)
@@ -287,10 +284,11 @@ int main(int argc, const char *argv[])
         );
 
         auto system = std::make_unique<System>(
-            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, omega, dx, numberofparticles, 0),
+            std::make_unique<class SimpleGaussianNumerical>(alpha, beta, omega, dx, 0, 0),
             std::make_unique<class Metropolis>(std::move(rng), Slater),
             std::move(particles),
             Filename,
+            0,
             Printout
         );
 
@@ -299,10 +297,9 @@ int main(int argc, const char *argv[])
             numberofEquilibrationSteps
         );
 
-        auto sampler = system->VaryParameters(
+        auto sampler = system->RunMetropolisSteps(
             steplength,
-            numberofMetropolisSteps,
-            maxvariations
+            numberofMetropolisSteps
         );
 
         sampler->printOutput();

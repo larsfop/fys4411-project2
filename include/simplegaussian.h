@@ -7,7 +7,7 @@
 class SimpleGaussian : public WaveFunction
 {
 public:
-    SimpleGaussian(const double alpha, double beta, double omega, bool Jastrow);
+    SimpleGaussian(const double alpha, double beta, double omega, bool Jastrow, bool m_Interaction);
     double Wavefunction(std::vector<std::unique_ptr<class Particle>> &particles);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double LocalEnergy(std::vector<std::unique_ptr<class Particle>> &particles);
@@ -30,8 +30,8 @@ public:
     arma::vec step
     );
     void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
-    bool Jastrow() {return 0; };
-    double spinParallelFactor(int i, int j, int N2) {exit(0); };
+    bool Jastrow() {return m_Jastrow; };
+    double spinParallelFactor(int i, int j, int N2);
     
 private:
     double m_alpha;
@@ -39,13 +39,15 @@ private:
     double m_omega;
     arma::vec m_beta_z;
     arma::vec m_parameters;
+    bool m_Jastrow;
+    bool m_Interaction;
 };
 
 
 class SimpleGaussianNumerical : public SimpleGaussian
 {
 public:
-    SimpleGaussianNumerical(double alpha, double beta, double omega, double dx, bool Jastrow);
+    SimpleGaussianNumerical(double alpha, double beta, double omega, double dx, bool Jastrow, bool m_Interaction);
     double DoubleDerivative(std::vector<std::unique_ptr<class Particle>> &particles);
     double EvaluateSingleParticle(class Particle particle);
     double EvaluateSingleParticle(class Particle particle, double step, double step_index);
@@ -53,5 +55,7 @@ public:
 private:
     double m_dx;
     double m_alpha;
+    double m_omega;
     arma::vec m_beta_z;
+    arma::vec m_parameters;
 };
