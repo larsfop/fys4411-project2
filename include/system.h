@@ -14,6 +14,7 @@ public:
         std::unique_ptr<class MonteCarlo> solver,
         std::vector<std::unique_ptr<class Particle>> particles,
         std::string Filename,
+        bool Hastings,
         bool Printout
     );
     std::unique_ptr<class Sampler> RunMetropolisSteps(
@@ -46,6 +47,7 @@ private:
     std::chrono::duration<double> m_time;
     std::string m_Filename;
     bool m_Printout;
+    bool m_Hastings;
 
     std::unique_ptr<class WaveFunction> m_wavefunction;
     std::unique_ptr<class MonteCarlo> m_solver;

@@ -10,13 +10,13 @@
 #include <armadillo>
 
 #include "Particle.h"
-#include "Math/random.h"
-//#include "WaveFunctions/simplegaussian.h"
+#include "random.h"
+#include "simplegaussian.h"
 //#include "WaveFunctions/interactinggaussian.h"
-#include "WaveFunctions/simplegaussianSlater.h"
-#include "InitialState/initialstate.h"
-#include "Solvers/metropolis.h"
-#include "Solvers/metropolishastings.h"
+#include "simplegaussianSlater.h"
+#include "initialstate.h"
+#include "metropolis.h"
+#include "metropolishastings.h"
 #include "sampler.h"
 #include "system.h"
 
@@ -24,17 +24,11 @@ using namespace std;
 
 int main(int argc, const char *argv[])
 {
-    arma::mat A;
-    A.ones(4,4);
-    arma::mat B;
-    arma::inv(B,A);
-
-
     int seed, numberofMetropolisSteps, numberofparticles, numberofdimensions, maxvariations;
-    double alpha, beta, steplength;
+    double alpha, beta, omega, steplength;
     double dx = 1e-1;
     string Filename;
-    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout;
+    bool OptimizeForParameters, VaryParameters, Interacting, Hastings, NumericalDer, Printout, Slater, Jastrow;
 
     string input;
     ifstream ifile("config");
@@ -56,6 +50,8 @@ int main(int argc, const char *argv[])
         {alpha = stod(value); }
         else if (name == "beta")
         {beta = stod(value); }
+        else if (name == "omega")
+        {omega = stod(value); }
         else if (name == "Steplength")
         {steplength = stod(value); }
         else if (name == "threadsused")
@@ -72,6 +68,10 @@ int main(int argc, const char *argv[])
         {Hastings = (bool) stoi(value); }
         else if (name == "NumericalDer")
         {NumericalDer = (bool) stoi(value); }
+        else if (name == "Slater")
+        {Slater = (bool) stoi(value); }
+        else if (name == "Jastrow")
+        {Jastrow = (bool) stoi(value); }
         else if (name=="Printout")
         {Printout = (bool) stoi(value); }
     }
@@ -97,6 +97,8 @@ int main(int argc, const char *argv[])
             {alpha = stod(value); }
             else if (name == "beta")
             {beta = stod(value); }
+            else if (name == "omega")
+            {omega = stod(value); }
             else if (name == "Steplength")
             {steplength = stod(value); }
             else if (name == "threadsused")
@@ -113,6 +115,10 @@ int main(int argc, const char *argv[])
             {Hastings = (bool) stoi(value); }
             else if (name == "NumericalDer")
             {NumericalDer = (bool) stoi(value); }
+            else if (name == "Slater")
+            {Slater = (bool) stoi(value); }
+            else if (name == "Jastrow")
+            {Jastrow = (bool) stoi(value); }
             else if (name=="Printout")
             {Printout = (bool) stoi(value); }
         }
@@ -122,7 +128,7 @@ int main(int argc, const char *argv[])
 
     double eta = 0.1;
     double tol = 1e-5;
-    int maxiter = 1e2;
+    int maxiter = 2e2;
 
     string Path = "Outputs/";
     int width = 16;
@@ -178,24 +184,35 @@ int main(int argc, const char *argv[])
         std::unique_ptr<class WaveFunction> wavefunction;
         std::unique_ptr<class MonteCarlo> solver;
 
-        if (Interacting)
+        if (!Slater)
         {
-            //wavefunction = std::make_unique<class InteractingGaussian>(alpha, beta);
-            
+            wavefunction = std::make_unique<class SimpleGaussian>(
+                alpha, 
+                beta, 
+                omega,
+                Jastrow,
+                Interacting
+            );
         }
         else
         {
-            wavefunction = std::make_unique<class SimpleGaussianSlater>(alpha, beta, numberofparticles);
+            wavefunction = std::make_unique<class SimpleGaussianSlater>(
+                alpha, 
+                beta, 
+                omega, 
+                numberofparticles,
+                Jastrow
+                );
+            wavefunction->FillSlaterDeterminants(particles);
         }
-        wavefunction->FillSlaterDeterminants(particles);
 
         if (Hastings)
         {
-            solver = std::make_unique<class MetropolisHastings>(std::move(rng));
+            solver = std::make_unique<class MetropolisHastings>(std::move(rng), Slater);
         }
         else
         {
-            solver = std::make_unique<class Metropolis>(std::move(rng));
+            solver = std::make_unique<class Metropolis>(std::move(rng), Slater);
         }
 
         auto system = std::make_unique<System>(
@@ -203,6 +220,7 @@ int main(int argc, const char *argv[])
             std::move(solver),
             std::move(particles),
             Filename,
+            Hastings,
             Printout
         );
 
@@ -249,7 +267,7 @@ int main(int argc, const char *argv[])
     auto t2 = std::chrono::system_clock::now();
 
     std::chrono::duration<double> time = t2 - t1;
-    cout << fixed << setprecision(3) << endl;
+    cout << std::fixed << setprecision(3) << endl;
     cout << "Time : " << time.count() << " seconds" << endl;
 
     if (NumericalDer)
@@ -266,10 +284,11 @@ int main(int argc, const char *argv[])
         );
 
         auto system = std::make_unique<System>(
-            std::make_unique<class SimpleGaussianSlaterNumerical>(alpha, beta, dx, numberofparticles),
-            std::make_unique<class Metropolis>(std::move(rng)),
+            std::make_unique<class SimpleGaussianNumerical>(alpha, beta, omega, dx, 0, 0),
+            std::make_unique<class Metropolis>(std::move(rng), Slater),
             std::move(particles),
             Filename,
+            0,
             Printout
         );
 
@@ -278,10 +297,9 @@ int main(int argc, const char *argv[])
             numberofEquilibrationSteps
         );
 
-        auto sampler = system->VaryParameters(
+        auto sampler = system->RunMetropolisSteps(
             steplength,
-            numberofMetropolisSteps,
-            maxvariations
+            numberofMetropolisSteps
         );
 
         sampler->printOutput();

@@ -17,7 +17,7 @@ public:
 
     int NextInt(int upper)
     {
-        std::uniform_int_distribution<int> rng(0.0, upper);
+        std::uniform_int_distribution<int> rng(0,upper);
         return rng(m_generator);
     }
 

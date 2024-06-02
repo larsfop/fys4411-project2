@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <vector>
-#include "../Particle.h"
-#include "Math/random.h"
+#include "Particle.h"
+#include "random.h"
 
 std::vector<std::unique_ptr<Particle>> SetupRandomUniformInitialState(
     const int numberofdimension,

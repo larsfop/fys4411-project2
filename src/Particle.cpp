@@ -1,6 +1,6 @@
 
 #include "Particle.h"
-#include "Math/random.h"
+#include "random.h"
 
 #include <iostream>
 using namespace std;
