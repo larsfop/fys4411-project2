@@ -27,6 +27,8 @@ public:
     void setParameters(double alpha, double beta);
     void setFilename(std::string Filename) {m_Filename = Filename; };
     void SetTime(std::chrono::duration<double> time) {m_time = time; };
+    void SampleHist(class System *system);
+    void SaveHist(bool Jastrow);
 
 private:
     int m_stepnumber;
@@ -37,6 +39,8 @@ private:
     int m_numberofthreads;
     double m_Energy;
     double m_Energy2;
+    double m_Kinetic;
+    double m_Potential;
     double m_variance;
     double m_DeltaEnergy;
     double m_steplength;
@@ -46,4 +50,6 @@ private:
     arma::vec m_params;
     std::string m_Filename;
     std::chrono::duration<double> m_time;
+
+    std::vector<double> m_hist;
 };

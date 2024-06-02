@@ -6,10 +6,6 @@ import numpy as np
 # Where to save the figures and data files
 DATA_ID = "../Outputs/"
 
-def data_path(dat_id):
-    return os.path.join(DATA_ID, dat_id)
-
-infile = open(data_path("Energies1.dat"),'r')
 
 from numpy import log2, zeros, mean, var, sum, loadtxt, arange, array, cumsum, dot, transpose, diagonal, sqrt
 from numpy.linalg import inv
@@ -48,20 +44,21 @@ def block(x):
     return mu, s[k]/2**(d-k)
 
 
-data = np.loadtxt('../Outputs/Energies1.dat')
-step = int(2**18)
+if __name__ == '__main__':
+    data = np.loadtxt('../Outputs/Energies.dat')
+    step = int(2**18)
 
-print(len(data), step)
+    print(len(data), step)
 
-for i in range(int(len(data)/step)):
-    #x = data[-1:-step-1:-1]
-    x = data[i*step:(i+1)*step]
-    j = i+1
-    #print(data[i*step:j*step])
-    #print(np.sum(data[i*step:(i+1)*step]))
-    #print(mean(data[i*step:(i+1)*step]))
-    (mean, var) = block(np.array(x)) 
-    std = sqrt(var)
-    values ={'Mean':[mean], 'STDev':[std]}
-    frame = pd.DataFrame(values,index=['Values'])
-    print(frame)
+    for i in range(int(len(data)/step)):
+        #x = data[-1:-step-1:-1]
+        x = data[i*step:(i+1)*step]
+        j = i+1
+        #print(data[i*step:j*step])
+        #print(np.sum(data[i*step:(i+1)*step]))
+        #print(mean(data[i*step:(i+1)*step]))
+        (mean, var) = block(np.array(x)) 
+        std = sqrt(var)
+        values ={'Mean':[mean], 'STDev':[std]}
+        frame = pd.DataFrame(values,index=['Values'])
+        print(frame)

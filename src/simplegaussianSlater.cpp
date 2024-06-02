@@ -11,7 +11,8 @@ SimpleGaussianSlater::SimpleGaussianSlater(
     double beta,
     double omega,
     int N,
-    bool Jastrow
+    bool Jastrow,
+    bool Interaction
 )
 {
     m_alpha = alpha;
@@ -19,6 +20,10 @@ SimpleGaussianSlater::SimpleGaussianSlater(
     m_omega = omega;
     m_parameters = {alpha, beta};
     m_Jastrow = Jastrow;
+    m_Interaction = Interaction;
+
+    m_kinetic = 0;
+    m_potential = 0;
 
     m_D_up.zeros(N/2, N/2);
     m_D_down.zeros(N/2, N/2);
@@ -106,6 +111,9 @@ void SimpleGaussianSlater::FillSlaterDeterminants(std::vector<std::unique_ptr<cl
     m_DI_up = arma::inv(m_D_up);
     m_DI_down = arma::inv(m_D_down);
 
+    m_DI_up_old = m_DI_up;
+    m_DI_down_old = m_DI_down;
+
     // (m_D_up*m_DI_up).print();
     // (m_D_down*m_DI_down).print();
 }
@@ -181,14 +189,17 @@ arma::vec SimpleGaussianSlater::SingleDerivative(
             return -m_alpha*m_omega*pos*e;
         case 1:
             dphi(0) = sqrt(m_omega)*e;
-            dphi -= m_alpha*sqrt(m_omega)*m_omega*(pos)*e;
+            dphi -= m_alpha*sqrt(m_omega)*m_omega*pos*e;
             return dphi;
         case 2:
             dphi(1) = sqrt(m_omega)*e;
             dphi -= m_alpha*sqrt(m_omega)*m_omega*pos*e;
             return dphi;
         case 3:
-            return (m_omega - m_alpha*m_omega*m_omega*pos(0)*pos(1)*pos)*e;
+            dphi(0) = m_omega*pos(1)*e;
+            dphi(1) = m_omega*pos(0)*e;
+            dphi -= m_alpha*m_omega*m_omega*pos(0)*pos(1)*pos*e;
+            return dphi;
         case 4:
             dphi(0) = 2*m_omega*pos(0)*e;
             dphi -= m_alpha*m_omega*pos*(m_omega*pos(0)*pos(0) - 1)*e;
@@ -298,7 +309,7 @@ double SimpleGaussianSlater::LocalEnergy(std::vector<std::unique_ptr<class Parti
 
             arma::vec J_int = SingleDerivativeJastrow(particles, i);
             kinetic += 2*arma::dot(J_int, D_int);
-        }    
+        }
 
         // Potential
         arma::vec pos = particles[i]->getPosition();
@@ -317,9 +328,12 @@ double SimpleGaussianSlater::LocalEnergy(std::vector<std::unique_ptr<class Parti
 
     }
 
+    m_kinetic = kinetic;
+    m_potential = !m_Interaction ? 0.5*m_omega*m_omega*potential : 0.5*m_omega*m_omega*potential + pot_int;
+
     // E_L for two fermions
     // potential: = 0.5*omega^2*r^2
-    return 0.5*(-kinetic + m_omega*m_omega*potential);// + pot_int;
+    return -0.5*m_kinetic + m_potential;
 }
 
 arma::vec SimpleGaussianSlater::QuantumForce(
@@ -341,9 +355,12 @@ arma::vec SimpleGaussianSlater::QuantumForce(
         qforce = SingleDerivative(particles, index, j)*Slater(j, i);
     }
 
+    arma::vec Jastrow(numberofdimensions);
     if (m_Jastrow)
     {
-        qforce += SingleDerivativeJastrow(particles, index);
+        Jastrow += SingleDerivativeJastrow(particles, index);
+
+        qforce += Jastrow;
     }
 
     return 2*qforce;
@@ -369,9 +386,11 @@ arma::vec SimpleGaussianSlater::QuantumForce(
         qforce = SingleDerivative(particles, index, j, Step)*Slater(j, i);
     }
 
+    arma::vec Jastrow(numberofdimensions);
     if (m_Jastrow)
     {
-        qforce += SingleDerivativeJastrow(particles, index);
+        Jastrow += SingleDerivativeJastrow(particles, index, Step);
+        qforce += Jastrow;
     }
 
     return 2*qforce;
@@ -414,6 +433,7 @@ arma::vec SimpleGaussianSlater::dPsidParam(std::vector<std::unique_ptr<class Par
     double der = 0;
     arma::vec r2(3);
     //double r2 = 0;
+    double rij = 0;
     for (int i = 0; i < numberofparticles; i++)
     {
         arma::vec pos = particles[i]->getPosition();
@@ -427,9 +447,22 @@ arma::vec SimpleGaussianSlater::dPsidParam(std::vector<std::unique_ptr<class Par
         {
             der -= m_omega*(r2(0) + r2(1))/2;//*EvalWavefunction(particles, i, j)*Slater(j,i%N2);
         }
+
+        for (int j = 0; j < i; j++)
+        {
+            arma::vec posj = particles[j]->getPosition();
+            rij += arma::norm(pos - posj);
+        }
+
+        for (int j = i+1; j < numberofparticles; j++)
+        {
+            arma::vec posj = particles[j]->getPosition();
+            rij += arma::norm(pos - posj);
+        }
     }
+
     derivative(0) = -m_omega*(r2(0) + r2(1))/2;//der;
-    // derivative(1) = -m_alpha*r2(2);
+    derivative(1) = -rij*rij/std::pow(1 + m_beta*rij, 2);;
     return derivative; // ex. Psi[alpha]/Psi -> Psi[alpha] = dPsi/dalpha
 }
 
@@ -523,19 +556,63 @@ arma::vec SimpleGaussianSlater::SingleDerivativeJastrow(
     {
         arma::vec pos_j = particles[j]->getPosition();
         double r_kj = arma::norm(pos_k - pos_j);
-
+        for (int i = 0; i < numberofdimensions; i++)
+        {
         double a = spinParallelFactor(k, j, N2);
 
-        Jastrow += (pos_k - pos_j)/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        Jastrow(i) += (pos_k(i) - pos_j(i))/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        }
+
     }
     for (int j = k+1; j < numberofparticles; j++)
     {
         arma::vec pos_j = particles[j]->getPosition();
         double r_kj = arma::norm(pos_k - pos_j);
-
+        for (int i = 0; i < numberofdimensions; i++)
+        {
         double a = spinParallelFactor(k, j, N2);
 
-        Jastrow += (pos_k - pos_j)/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        Jastrow(i) += (pos_k(i) - pos_j(i))/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        }
+    }
+
+    return Jastrow;
+}
+
+arma::vec SimpleGaussianSlater::SingleDerivativeJastrow(
+    std::vector<std::unique_ptr<class Particle>> &particles, 
+    int k,
+    arma::vec step
+    )
+{
+    int numberofparticles = particles.size();
+    int numberofdimensions = particles[0]->getNumberofDimensions();
+    int N2 = numberofparticles/2;
+
+    arma::vec pos_k = particles[k]->getPosition() + step;
+    arma::vec Jastrow(numberofdimensions);
+    for (int j = 0; j < k; j++)
+    {
+        arma::vec pos_j = particles[j]->getPosition();
+        double r_kj = arma::norm(pos_k - pos_j);
+        for (int i = 0; i < numberofdimensions; i++)
+        {
+        double a = spinParallelFactor(k, j, N2);
+
+        Jastrow(i) += (pos_k(i) - pos_j(i))/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        }
+
+    }
+    for (int j = k+1; j < numberofparticles; j++)
+    {
+        arma::vec pos_j = particles[j]->getPosition();
+        double r_kj = arma::norm(pos_k - pos_j);
+        for (int i = 0; i < numberofdimensions; i++)
+        {
+        double a = spinParallelFactor(k, j, N2);
+
+        Jastrow(i) += (pos_k(i) - pos_j(i))/r_kj * a/std::pow(1 + m_beta*r_kj, 2);
+        }
     }
 
     return Jastrow;
@@ -675,10 +752,32 @@ void SimpleGaussianSlater::CheckSlater(std::vector<std::unique_ptr<class Particl
     (m_D_down*m_DI_down).print();
 }
 
+double SimpleGaussianSlater::getKinetic()
+{
+    return m_kinetic;
+}
+
+double SimpleGaussianSlater::getPotential()
+{
+    return m_potential;
+}
+
+void SimpleGaussianSlater::KeepOldInverseSlater()
+{
+    m_DI_up = m_DI_up_old;
+    m_DI_down = m_DI_down_old;
+}
+
+void SimpleGaussianSlater::ChangeOldInverseSlater()
+{
+    m_DI_up_old = m_DI_up;
+    m_DI_down_old = m_DI_down;
+}
 
 
 
-SimpleGaussianSlaterNumerical::SimpleGaussianSlaterNumerical(double alpha, double beta, double omega, double dx, int N, bool Jastrow) : SimpleGaussianSlater(alpha, beta, omega, N, Jastrow)
+
+SimpleGaussianSlaterNumerical::SimpleGaussianSlaterNumerical(double alpha, double beta, double omega, double dx, int N, bool Jastrow, bool Interaction) : SimpleGaussianSlater(alpha, beta, omega, N, Jastrow, Interaction)
 {
     m_alpha = alpha;
     m_dx = dx;

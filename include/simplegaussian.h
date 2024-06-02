@@ -32,6 +32,10 @@ public:
     void CheckSlater(std::vector<std::unique_ptr<class Particle>> &particles);
     bool Jastrow() {return m_Jastrow; };
     double spinParallelFactor(int i, int j, int N2);
+    double getKinetic();
+    double getPotential();
+    void KeepOldInverseSlater() {exit(0); };
+    void ChangeOldInverseSlater() {exit(0); };
     
 private:
     double m_alpha;
@@ -41,6 +45,9 @@ private:
     arma::vec m_parameters;
     bool m_Jastrow;
     bool m_Interaction;
+
+    double m_kinetic;
+    double m_potential;
 };
 
 

@@ -33,13 +33,27 @@ bool MetropolisHastings::Step(
         step(i) = sqrt_dt*m_rng->NextGaussian() + qforce(i)*stepsize*D;
     }
 
+    // update inverse Slater determinants for new position
+    if (m_slater)
+    {
+        double det = wavefunction.w(particles, index, step);
+        wavefunction.UpdateInverseSlater(particles, index, det, step);
+    }
+
     // Compute the quantum force
     arma::vec qforcenew = wavefunction.QuantumForce(particles, index, step);
+    // qforce.print();
+    // qforcenew.print();
     double greens = 0;
     for (int i = 0; i < numberofdimensions; i++)
     {
         greens += 0.5*(qforce(i) + qforcenew(i))*(D*stepsize*0.5*\
         (qforce(i) - qforcenew(i)) - (pos(i) + step(i)) + pos(i));
+    }
+
+    if (m_slater)
+    {
+        wavefunction.KeepOldInverseSlater();
     }
 
     // Slater determinant ratio
@@ -70,15 +84,24 @@ bool MetropolisHastings::Step(
     }
 
     double random = m_rng->NextDouble();
-    if(random <= R*R*exp(greens))
+    if(random <= R*R*J*J*exp(greens))
     {
         if (m_slater)
-        {        
+        {
             wavefunction.UpdateInverseSlater(particles, index, R, step);
+            wavefunction.ChangeOldInverseSlater();
         }
+
         particles.at(index)->ChangePosition(step);
         return true;
     }
+    else
+    {
+        if (m_slater)
+        {
+            wavefunction.KeepOldInverseSlater();
+        }
 
-    return false;
+        return false;
+    }
 }

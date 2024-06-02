@@ -40,6 +40,9 @@ public:
     double ComputeLocalEnergy();
     arma::vec ComputeDerivatives();
     arma::vec getParameters();
+    arma::vec getPosition(int index);
+    double getKinetic();
+    double getPotential();
 
 private:
     int m_numberofparticles;

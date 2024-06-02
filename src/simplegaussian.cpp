@@ -16,7 +16,6 @@ SimpleGaussian::SimpleGaussian(
     m_alpha = alpha;
     m_beta = beta;
     m_omega = omega;
-    m_beta_z = {1.0, 1.0, beta};
     m_parameters = {alpha, beta};
 
     m_Jastrow = Jastrow;
@@ -116,9 +115,10 @@ double SimpleGaussian::LocalEnergy(std::vector<std::unique_ptr<class Particle>> 
     // kinetic: 2D: -4*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2)
     //          3D: -6*alpha*omega + alpha^2*omega^2(r1^2 + r2^2 + 2*x1*x2 + 2*y1*y2 + 2*z1*z2)
 
-    double E_L = !m_Interaction ? 0.5*(-kinetic + m_omega*m_omega*potential) : 0.5*(-kinetic + m_omega*m_omega*potential) + 1.0/r12 ;
+    m_kinetic = kinetic;
+    m_potential = !m_Interaction ? 0.5*m_omega*m_omega*potential : 0.5*m_omega*m_omega*potential + 1.0/r12;
 
-    return E_L;
+    return -0.5*m_kinetic + m_potential;
 }
 
 arma::vec SimpleGaussian::QuantumForce(
@@ -129,21 +129,31 @@ arma::vec SimpleGaussian::QuantumForce(
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
     arma::vec qforce(numberofdimensions);
-    arma::vec pos1 = particles[0]->getPosition();
-    arma::vec pos2 = particles[1]->getPosition();
-    for (int j = 0; j < numberofdimensions; j++)
-    {
-        qforce(j) += pos1(j) + pos2(j);
-    }
+    arma::vec pos = particles[index]->getPosition();
+    qforce = pos;
+    // arma::vec pos2 = particles[1]->getPosition();
+    // for (int j = 0; j < numberofdimensions; j++)
+    // {
+    //     qforce(j) += pos1(j) + pos2(j);
+    // }
     qforce *= -m_alpha*m_omega;
 
+    arma::vec Jastrow(numberofdimensions);
     if (m_Jastrow)
     {
-        double r12 = arma::norm(pos1 - pos2);
-        qforce += (pos1 - pos2)/r12/std::pow(1 + m_beta*r12, 2);
+        for (int i = 0; i < numberofparticles; i++)
+        {
+            if (i != index)
+            {
+                arma::vec pos_i = particles[i]->getPosition();
+                double r12 = arma::norm(pos - pos_i);
+                Jastrow += (pos - pos_i)/r12*1.0/3/std::pow(1 + m_beta*r12, 2);
+            }
+        }
+        qforce += Jastrow;
     }
 
-    return qforce;
+    return 2*qforce;
 }
 
 arma::vec SimpleGaussian::QuantumForce(
@@ -154,24 +164,32 @@ arma::vec SimpleGaussian::QuantumForce(
 {   
     int numberofparticles = particles.size();
     int numberofdimensions = particles[0]->getNumberofDimensions();
-    arma::vec pos1 = particles[0]->getPosition();
-    arma::vec pos2 = particles[1]->getPosition();
     arma::vec qforce(numberofdimensions);
-    for (int i = 0; i < numberofparticles; i++)
-    {
-        arma::vec pos = particles[i]->getPosition();
-        qforce += pos;
-    }
-    qforce += Step;
+    arma::vec pos = particles[index]->getPosition() + Step;
+    qforce = pos;
+    // arma::vec pos2 = particles[1]->getPosition();
+    // for (int j = 0; j < numberofdimensions; j++)
+    // {
+    //     qforce(j) += pos1(j) + pos2(j);
+    // }
     qforce *= -m_alpha*m_omega;
 
+    arma::vec Jastrow(numberofdimensions);
     if (m_Jastrow)
     {
-        double r12 = arma::norm(pos1 - pos2);
-        qforce += (pos1 - pos2)/r12/std::pow(1 + m_beta*r12, 2);
+        for (int i = 0; i < numberofparticles; i++)
+        {
+            if (i != index)
+            {
+                arma::vec pos_i = particles[i]->getPosition();
+                double r12 = arma::norm(pos - pos_i);
+                Jastrow += (pos - pos_i)/r12*1.0/3/std::pow(1 + m_beta*r12, 2);
+            }
+        }
+        qforce += Jastrow;
     }
 
-    return qforce; 
+    return 2*qforce; 
 }
 
 double SimpleGaussian::w(std::vector<std::unique_ptr<class Particle>> &particles,
@@ -293,6 +311,16 @@ double SimpleGaussian::spinParallelFactor(int i, int j, int N2)
     }
 
     return a;
+}
+
+double SimpleGaussian::getKinetic()
+{
+    return m_kinetic;
+}
+
+double SimpleGaussian::getPotential()
+{
+    return m_potential;
 }
 
 
